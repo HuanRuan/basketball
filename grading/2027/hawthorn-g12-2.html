@@ -222,7 +222,7 @@ function analyse() {
     else open.push(i);
   });
   const certain = new Set(), pct = new Set(), byOwn = {}, per = {};
-  open.forEach(i => per[i] = { H: { sum: 0, n: 0, set: new Set() }, A: { sum: 0, n: 0, set: new Set() } });
+  open.forEach(i => per[i] = { H: { sum: 0, n: 0, set: new Set(), cnt: {}, pct: 0 }, A: { sum: 0, n: 0, set: new Set(), cnt: {}, pct: 0 } });
   for (let mask = 0; mask < (1 << open.length); mask++) {
     const res = fixed.slice(), own = [], picks = {};
     open.forEach((i, k) => { const g = games[i], h = (mask >> k) & 1; const r = winLose(g, h); res.push(r); picks[i] = h ? 'H' : 'A';
@@ -231,7 +231,8 @@ function analyse() {
     const k = own.join('-');
     byOwn[k] = byOwn[k] || new Set();
     for (let p = lo; p <= hi; p++) { (lo === hi ? certain : pct).add(p); byOwn[k].add(p); }
-    open.forEach(i => { const b = per[i][picks[i]]; b.sum += (lo + hi) / 2; b.n++; for (let p = lo; p <= hi; p++) b.set.add(p); });
+    open.forEach(i => { const b = per[i][picks[i]]; b.sum += (lo + hi) / 2; b.n++; for (let p = lo; p <= hi; p++) b.set.add(p);
+      if (lo === hi) b.cnt[lo] = (b.cnt[lo] || 0) + 1; else b.pct++; });
   }
   const possible = new Set([...certain, ...pct]);
   const pctOnly = new Set([...pct].filter(p => !certain.has(p)));
@@ -322,9 +323,14 @@ function render() {
     const g = games[best.i];
     const meHome = g.home === me, mine = meHome || g.away === me;
     const w = mine ? (meHome ? best.p.H : best.p.A) : best.p.H, l = mine ? (meHome ? best.p.A : best.p.H) : best.p.A;
+    // "1st in 6, 2nd in 1, percentage decides 1": where the team finishes over every way the other games can go
+    const spread = b => [...Object.entries(b.cnt).sort((x, y) => x[0] - y[0]).map(([pl, c]) => `${ORD(+pl)} in ${c}`),
+      ...(b.pct ? [`percentage decides ${b.pct}`] : [])].join(', ');
+    const ways = w.n;
     facts.push(`Biggest game left: <b>${esc(short(g.home))} v ${esc(short(g.away))}</b>, ${fmtDate(g.date)}. ` +
-      (mine ? `Average finish ${(w.sum / w.n).toFixed(2)} with a win, ${(l.sum / l.n).toFixed(2)} with a loss (other games 50/50).`
-            : `It moves the average finish by ${best.d.toFixed(2)} places.`));
+      `The other games can go ${ways} ways. ` +
+      (mine ? `<b>Win:</b> ${spread(w)}. <b>Lose:</b> ${spread(l)}.`
+            : `<b>${esc(short(g.home))} win:</b> ${spread(best.p.H)}. <b>${esc(short(g.away))} win:</b> ${spread(best.p.A)}.`));
   }
   document.getElementById('facts').innerHTML = facts.map(f => `<li><span>${f}</span></li>`).join('');
 
