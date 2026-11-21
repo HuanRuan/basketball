@@ -414,10 +414,11 @@ document.getElementById('reset').addEventListener('click', () => { S = { pool: {
 
 // static text
 document.getElementById('eyebrow').textContent = D.season ? `VJBL grading · ${D.season}` : 'VJBL grading';
+if (D.seasonDates) document.getElementById('eyebrow').title = D.seasonDates;
 document.getElementById('title').textContent = `Where can ${D.name} finish in VJBL grading?`;
 document.getElementById('lede').innerHTML = `${esc(D.name)} is in <b>Pool ${esc(D.position)}</b> of VJBL Grading Phase One` +
   (D.seeds ? `, the band for teams seeded ${esc(D.seeds)}` : '') +
-  (D.season ? `, in the ${esc(D.season)}${D.seasonDates ? ' (' + esc(D.seasonDates) + ')' : ''}` : '') + `. Each finish leads to a crossover game, a Phase Two pool and then a league. Results so far decide which paths are still open.`;
+  `. Each finish leads to a crossover game, a Phase Two pool and then a league. Results so far decide which paths are still open.`;
 document.getElementById('poolTitle').textContent = `Pool ${D.position}`;
 document.getElementById('asof').innerHTML = (D.pool.fetched ? `Results as of ${fmtDate(D.pool.fetched)}` : '') +
   (D.teamUrl ? ` · <a href="${esc(D.teamUrl)}" target="_blank" rel="noopener">PlayHQ</a>` : '');
