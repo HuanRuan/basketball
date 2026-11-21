@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hawthorn Magic B16.4 Grading Paths</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: a scoreboard band (pool, finishes, league ladder) over a 2-up grid of finish cards,
+   each a bracket from Phase One finish down to a league. League colours are the grading map's own. */
+:root {
+  --bg: #EEF1F4; --surface: #FFFFFF; --sunk: #F6F8FA; --ink: #15202B; --muted: #5B6875; --line: #D5DCE3;
+  --accent: #D9581E; --accent-soft: #FBE3D7; --ok: #23784C; --warn: #A86A00; --off: #A7B0BA;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+/*DARK*/
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0E1318; --surface: #161D25; --sunk: #1B232C; --ink: #E6ECF1; --muted: #93A1AE; --line: #2A3541;
+  --accent: #F07A42; --accent-soft: #3A2419; --ok: #5CC48C; --warn: #E0A94A; --off: #4C5864; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0E1318; --surface: #161D25; --sunk: #1B232C; --ink: #E6ECF1; --muted: #93A1AE; --line: #2A3541;
+  --accent: #F07A42; --accent-soft: #3A2419; --ok: #5CC48C; --warn: #E0A94A; --off: #4C5864; color-scheme: dark }
+/*/DARK*/
+* { box-sizing: border-box }
+/*BODY*/
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 var(--body); font-variant-numeric: tabular-nums;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 48px }
+/*/BODY*/
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 20px }
+h1, h2, h3, h4 { font-family: var(--display); font-weight: 600; letter-spacing: .01em; margin: 0; text-wrap: balance }
+h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.05 }
+h2 { font-size: 22px }
+.eyebrow { font: 600 12px/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--accent) }
+.lede { color: var(--muted); max-width: 70ch; margin: 6px 0 0 }
+code, .code { font-family: var(--mono); font-size: .86em; background: var(--sunk); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; white-space: nowrap }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px }
+.band { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px }
+@media (max-width: 860px) { .band { grid-template-columns: minmax(0, 1fr) } }
+.sub { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px }
+.sub small { color: var(--muted) }
+table { border-collapse: collapse; width: 100% }
+th, td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line) }
+th { font: 600 11px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted) }
+td.n, th.n { text-align: right }
+tr.me td { font-weight: 600 }
+tr.me td:first-child { box-shadow: inset 3px 0 0 var(--accent) }
+.games { display: grid; gap: 8px; margin-top: 14px }
+.game { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 10px; align-items: center }
+.game .when { color: var(--muted); font-size: 12px }
+.game .who { min-width: 0 }
+.game .who b { font-weight: 600 }
+.score { font-family: var(--mono); font-size: 13px }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--sunk) }
+.seg button { font: 500 12px/1 var(--body); color: var(--muted); background: transparent; border: 0; padding: 6px 9px; cursor: pointer; white-space: nowrap }
+.seg button + button { border-left: 1px solid var(--line) }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff }
+.seg button:hover:not([aria-pressed="true"]) { color: var(--ink) }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.finishes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 6px }
+.fin { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--sunk) }
+.fin b { font: 700 24px/1 var(--display); display: block }
+.fin span { font-size: 12px; color: var(--muted) }
+.fin.open { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 10%, var(--surface)) }
+.fin.open span { color: var(--ok) }
+.fin.pct { border-color: var(--warn); border-style: dashed }
+.fin.pct span { color: var(--warn) }
+.fin.closed { opacity: .55 }
+.fin.closed b { text-decoration: line-through; text-decoration-thickness: 2px }
+.ladder { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px; margin-top: 8px }
+@media (max-width: 560px) { .ladder { grid-template-columns: repeat(5, minmax(0, 1fr)) } .finishes { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+.lg { border-radius: 6px; padding: 7px 4px 6px; text-align: center; border: 1px solid var(--line); background: var(--sunk); min-width: 0 }
+.lg b { font: 700 15px/1 var(--display); display: block }
+.lg span { font-size: 10.5px; color: var(--muted); display: block; margin-top: 3px }
+.lg.open { background: color-mix(in srgb, var(--lgc) 55%, var(--surface)); border-color: color-mix(in srgb, var(--lgc) 80%, var(--ink)) }
+.lg.open span { color: var(--ink) }
+.lg.closed { opacity: .5 }
+.lg.closed b { text-decoration: line-through }
+.lg.none { opacity: .3 }
+.facts { display: grid; gap: 6px; margin: 14px 0 0; padding: 0; list-style: none }
+.facts li { display: flex; gap: 8px }
+.facts li::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-top: 8px }
+.own { margin-top: 12px }
+.own td:first-child { white-space: nowrap }
+.toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap }
+.btn { font: 500 13px/1 var(--body); border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; padding: 8px 12px; cursor: pointer }
+.btn:hover { border-color: var(--accent) }
+.pill { font-size: 12px; border-radius: 999px; padding: 3px 9px; background: var(--accent-soft); color: var(--accent); font-weight: 600 }
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px }
+@media (max-width: 900px) { .cards { grid-template-columns: minmax(0, 1fr) } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; min-width: 0 }
+.card > header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap }
+.card > header .big { font: 700 34px/0.9 var(--display) }
+.card > header .t { flex: 1; min-width: 0 }
+.card > header .t div { font-size: 12px; color: var(--muted) }
+.status { font-size: 12px; font-weight: 600; border-radius: 999px; padding: 3px 9px }
+.status.open { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, var(--surface)) }
+.status.pct { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, var(--surface)) }
+.status.closed { color: var(--muted); background: var(--sunk) }
+.xover { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--sunk); border-bottom: 1px solid var(--line); flex-wrap: wrap }
+.branch { padding: 12px 16px; border-bottom: 1px solid var(--line) }
+.branch:last-child { border-bottom: 0 }
+.branch h4 { font-size: 18px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap }
+.branch h4 .arrow { color: var(--accent) }
+.mates { font-size: 12px; color: var(--muted); margin: 2px 0 8px }
+.places { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px }
+.pl { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; align-items: start }
+.pl .pbtn { font: 700 16px/1 var(--display); border: 1px solid var(--line); background: var(--sunk); color: var(--ink); border-radius: 6px; padding: 6px 0; cursor: pointer; width: 44px }
+.pl .pbtn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff }
+.pl .r1 { font-size: 13px }
+.out { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 12.5px; margin-top: 4px }
+.out .rbtn { font: 600 11px/1 var(--body); border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 4px; padding: 4px 6px; cursor: pointer }
+.out .rbtn[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink) }
+.out .then { color: var(--muted) }
+.chip { display: inline-flex; align-items: center; gap: 4px; font: 600 12px/1 var(--body); border-radius: 4px; padding: 3px 6px;
+  background: color-mix(in srgb, var(--lgc) 45%, var(--surface)); border: 1px solid color-mix(in srgb, var(--lgc) 85%, var(--ink)); color: var(--ink); white-space: nowrap }
+.chips { display: inline-flex; gap: 3px; align-items: center }
+.chips.ranked .chip { border-style: dashed }
+.chips.ranked::after { content: "ranked"; font-size: 10.5px; color: var(--muted); margin-left: 2px }
+.off { opacity: .38; filter: grayscale(1) }
+.off .off { opacity: 1; filter: none }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); align-items: center }
+footer { color: var(--muted); font-size: 12px; display: grid; gap: 4px; max-width: 90ch }
+@media (prefers-reduced-motion: no-preference) { .card, .branch, .pl, .out, .fin, .lg { transition: opacity .2s, filter .2s } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1 id="title"></h1>
+    <p class="lede" id="lede"></p>
+  </header>
+
+  <section class="band">
+    <div class="panel">
+      <div class="sub"><h2 id="poolTitle">Pool</h2><small id="asof"></small></div>
+      <table id="ladder"></table>
+      <div class="games" id="games"></div>
+    </div>
+    <div class="panel">
+      <div class="sub"><h2>Where it can end up</h2><span class="pill" id="whatif" hidden>Showing what-ifs</span></div>
+      <div class="finishes" id="finishes"></div>
+      <div class="ladder" id="leagues"></div>
+      <ul class="facts" id="facts"></ul>
+      <table class="own" id="own"></table>
+    </div>
+  </section>
+
+  <section class="toolbar">
+    <h2 style="flex:1">Every path, by finish</h2>
+    <div class="legend"><span><span class="chips"><span class="chip" style="--lgc:#BDEB8F">VJL6</span></span> certain</span>
+      <span><span class="chips ranked"><span class="chip" style="--lgc:#F2A08F">VJL5</span><span class="chip" style="--lgc:#BDEB8F">VJL6</span></span> VJBL ranks leftover teams</span></div>
+    <button class="btn" id="reset" type="button">Reset to real results</button>
+  </section>
+  <p class="lede" style="margin:-8px 0 0">Tap a result (W / L, a place, or a pool game above) to see what's left if it happens. Tap it again to undo. Greyed paths are ruled out.</p>
+  <section class="cards" id="cards"></section>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+const D = {"name":"Hawthorn Magic B16.4","position":"9C","seeds":"137-152","map":"2027 VJBL Under 16 Boys grading map","caveats":["VJBL Admin may change games or pools based on team performance or location; Phase Two pools may be adjusted due to travel."],"leagues":[{"id":"VJCL","name":"Victorian Junior Championship League","size":20,"seeds":"1-20","color":"#F2D94E"},{"id":"VJL1","name":"Victorian Junior League 1","size":10,"seeds":"21-30","color":"#8FE3EE"},{"id":"VJL2","name":"Victorian Junior League 2","size":10,"seeds":"31-40","color":"#F59AC4"},{"id":"VJL3","name":"Victorian Junior League 3","size":10,"seeds":"41-50","color":"#8EE6A8"},{"id":"VJL4","name":"Victorian Junior League 4","size":20,"seeds":"51-70","color":"#C7A8F0"},{"id":"VJL5","name":"Victorian Junior League 5","size":30,"seeds":"71-100","color":"#F2A08F"},{"id":"VJL6","name":"Victorian Junior League 6","size":30,"seeds":"101-130","color":"#BDEB8F"},{"id":"VJL7","name":"Victorian Junior League 7","size":30,"seeds":"131-160","color":"#7FA6E8"},{"id":"RDL","name":"Victorian Junior League - RDL competitions","size":null,"seeds":"rest","color":"#F5C26B"}],"pool":{"team":"Hawthorn U16 Boys 4","grade":"16 Boys Grading 1 - Pool 9C","teams":["Doncaster U16 Boys 1","Pakenham U16 Boys 4","Hawthorn U16 Boys 4","Knox U16 Boys 6"],"games":[{"round":"Round 1","date":"2026-11-20","home":"Doncaster U16 Boys 1","away":"Pakenham U16 Boys 4","status":"FINAL","hs":26,"as":53},{"round":"Round 1","date":"2026-11-20","home":"Hawthorn U16 Boys 4","away":"Knox U16 Boys 6","status":"PENDING","hs":null,"as":null},{"round":"Round 2","date":"2026-11-27","home":"Pakenham U16 Boys 4","away":"Knox U16 Boys 6","status":"UPCOMING","hs":null,"as":null},{"round":"Round 2","date":"2026-11-27","home":"Doncaster U16 Boys 1","away":"Hawthorn U16 Boys 4","status":"UPCOMING","hs":null,"as":null},{"round":"Round 3","date":"2026-12-04","home":"Hawthorn U16 Boys 4","away":"Pakenham U16 Boys 4","status":"UPCOMING","hs":null,"as":null},{"round":"Round 3","date":"2026-12-04","home":"Knox U16 Boys 6","away":"Doncaster U16 Boys 1","status":"UPCOMING","hs":null,"as":null}],"ladder":[{"standings":[{"pos":1,"team":"Pakenham U16 Boys 4","P":1,"W":1,"L":0,"D":0,"PTS":3,"pct":203.85,"PF":53,"PA":26},{"pos":2,"team":"Doncaster U16 Boys 1","P":1,"W":0,"L":1,"D":0,"PTS":1,"pct":49.06,"PF":26,"PA":53},{"pos":3,"team":"Hawthorn U16 Boys 4","P":0,"W":0,"L":0,"D":0,"PTS":0,"pct":0,"PF":0,"PA":0},{"pos":4,"team":"Knox U16 Boys 6","P":0,"W":0,"L":0,"D":0,"PTS":0,"pct":0,"PF":0,"PA":0}]}],"fetched":"2026-11-21"},"finishes":[{"place":1,"tok":"1C P9","leagues":["VJL5","VJL6","VJL7","RDL"],"kind":"game","game":"A1","opp":"4C P7","oppText":"4th of Pool 7C","branches":[{"res":"W","pool":"GG","col":"A","mates":["L-PP","L-RR","W-UU","W-A1"],"matesText":["loser of PP","loser of RR","winner of UU","winner of A1"],"places":[{"place":1,"tok":"1A GG","label":"1st GG-A","game":"22","opp":"4D FF","oppText":"4th of FF-D","outs":[{"res":"W","game":"A9","opp":"L-15","oppText":"loser of 15","win":{"leagues":["VJL5","VJL6"],"ranked":true,"how":"best 20 of the rest of WW-B3 -> VJL5, others -> VJL6"},"lose":{"leagues":["VJL5","VJL6"],"ranked":true,"how":"best 20 of the rest of WW-B3 -> VJL5, others -> VJL6"}},{"res":"L","game":"B7","opp":"W-23","oppText":"winner of 23","win":{"leagues":["VJL6"],"ranked":false,"how":"winners of B4-B7 -> VJL6"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}}]},{"place":2,"tok":"2A GG","label":"2nd GG-A","game":"23","opp":"3B GG","oppText":"3rd of GG-B","outs":[{"res":"W","game":"B7","opp":"L-22","oppText":"loser of 22","win":{"leagues":["VJL6"],"ranked":false,"how":"winners of B4-B7 -> VJL6"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}},{"res":"L","game":"B8","opp":"W-30","oppText":"winner of 30","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}}]},{"place":3,"tok":"3A GG","label":"3rd GG-A","game":"26","opp":"2D GG","oppText":"2nd of GG-D","outs":[{"res":"W","game":"B4","opp":"L-19","oppText":"loser of 19","win":{"leagues":["VJL6"],"ranked":false,"how":"winners of B4-B7 -> VJL6"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}},{"res":"L","game":"C2","opp":"W-27","oppText":"winner of 27","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}}]},{"place":4,"tok":"4A GG","label":"4th GG-A","game":"27","opp":"1B HH","oppText":"1st of HH-B","outs":[{"res":"W","game":"C2","opp":"L-26","oppText":"loser of 26","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}},{"res":"L","game":"C3","opp":"W-34","oppText":"winner of 34","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}}]}]},{"res":"L","pool":"HH","col":"B","mates":["L-UU","L-A1","W-A4","W-A9"],"matesText":["loser of UU","loser of A1","winner of A4","winner of A9"],"places":[{"place":1,"tok":"1B HH","label":"1st HH-B","game":"27","opp":"4A GG","oppText":"4th of GG-A","outs":[{"res":"W","game":"C2","opp":"L-26","oppText":"loser of 26","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}},{"res":"L","game":"C3","opp":"W-34","oppText":"winner of 34","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}}]},{"place":2,"tok":"2B HH","label":"2nd HH-B","game":"32","opp":"3C HH","oppText":"3rd of HH-C","outs":[{"res":"W","game":"C5","opp":"L-29","oppText":"loser of 29","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}},{"res":"L","game":"C8","opp":"W-37","oppText":"winner of 37","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}}]},{"place":3,"tok":"3B HH","label":"3rd HH-B","game":"31","opp":"2A HH","oppText":"2nd of HH-A","outs":[{"res":"W","game":"C6","opp":"L-30","oppText":"loser of 30","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}},{"res":"L","game":"C7","opp":"W-38","oppText":"winner of 38","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}}]},{"place":4,"tok":"4B HH","label":"4th HH-B","game":"36","opp":"1C II","oppText":"1st of II-C","outs":[{"res":"W","game":"C9","opp":"L-33","oppText":"loser of 33","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}},{"res":"L","game":"D3","opp":"W-41","oppText":"winner of 41","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]}]}]},{"place":2,"tok":"2C P9","leagues":["VJL6","VJL7","RDL"],"kind":"game","game":"A5","opp":"3C P8","oppText":"3rd of Pool 8C","branches":[{"res":"W","pool":"HH","col":"C","mates":["L-XX","L-ZZ","W-A5","W-A8"],"matesText":["loser of XX","loser of ZZ","winner of A5","winner of A8"],"places":[{"place":1,"tok":"1C HH","label":"1st HH-C","game":"28","opp":"4B GG","oppText":"4th of GG-B","outs":[{"res":"W","game":"C1","opp":"L-25","oppText":"loser of 25","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}},{"res":"L","game":"C4","opp":"W-33","oppText":"winner of 33","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}}]},{"place":2,"tok":"2C HH","label":"2nd HH-C","game":"33","opp":"3D HH","oppText":"3rd of HH-D","outs":[{"res":"W","game":"C4","opp":"L-28","oppText":"loser of 28","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}},{"res":"L","game":"C9","opp":"W-36","oppText":"winner of 36","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}}]},{"place":3,"tok":"3C HH","label":"3rd HH-C","game":"32","opp":"2B HH","oppText":"2nd of HH-B","outs":[{"res":"W","game":"C5","opp":"L-29","oppText":"loser of 29","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}},{"res":"L","game":"C8","opp":"W-37","oppText":"winner of 37","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}}]},{"place":4,"tok":"4C HH","label":"4th HH-C","game":"37","opp":"1D II","oppText":"1st of II-D","outs":[{"res":"W","game":"C8","opp":"L-32","oppText":"loser of 32","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}},{"res":"L","game":"D4","opp":"W-40","oppText":"winner of 40","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]}]},{"res":"L","pool":"II","col":"D","mates":["L-A5","L-A7","W-B5","W-B6"],"matesText":["loser of A5","loser of A7","winner of B5","winner of B6"],"places":[{"place":1,"tok":"1D II","label":"1st II-D","game":"37","opp":"4C HH","oppText":"4th of HH-C","outs":[{"res":"W","game":"C8","opp":"L-32","oppText":"loser of 32","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}},{"res":"L","game":"D4","opp":"W-40","oppText":"winner of 40","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]},{"place":2,"tok":"2D II","label":"2nd II-D","game":"42","opp":"3A II","oppText":"3rd of II-A","outs":[{"res":"W","game":"D2","opp":"L-35","oppText":"loser of 35","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}},{"res":"L","game":"D9","opp":"W-43","oppText":"winner of 43","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]},{"place":3,"tok":"3D II","label":"3rd II-D","game":"41","opp":"2C II","oppText":"2nd of II-C","outs":[{"res":"W","game":"D3","opp":"L-36","oppText":"loser of 36","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}},{"res":"L","game":"D8","opp":"W-44","oppText":"winner of 44","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]},{"place":4,"tok":"4D II","label":"4th II-D","game":"46","opp":"1A JJ","oppText":"1st of JJ-A","outs":[{"res":"W","game":"D6","opp":"L-39","oppText":"loser of 39","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}},{"res":"L","game":"E4","opp":"W-47","oppText":"winner of 47","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]}]}]},{"place":3,"tok":"3C P9","leagues":["VJL6","VJL7","RDL"],"kind":"game","game":"B4","opp":"2C P10","oppText":"2nd of Pool 10C","branches":[{"res":"W","pool":"II","col":"C","mates":["L-A6","L-A8","W-B4","W-B7"],"matesText":["loser of A6","loser of A8","winner of B4","winner of B7"],"places":[{"place":1,"tok":"1C II","label":"1st II-C","game":"36","opp":"4B HH","oppText":"4th of HH-B","outs":[{"res":"W","game":"C9","opp":"L-33","oppText":"loser of 33","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}},{"res":"L","game":"D3","opp":"W-41","oppText":"winner of 41","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]},{"place":2,"tok":"2C II","label":"2nd II-C","game":"41","opp":"3D II","oppText":"3rd of II-D","outs":[{"res":"W","game":"D3","opp":"L-36","oppText":"loser of 36","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}},{"res":"L","game":"D8","opp":"W-44","oppText":"winner of 44","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]},{"place":3,"tok":"3C II","label":"3rd II-C","game":"40","opp":"2B II","oppText":"2nd of II-B","outs":[{"res":"W","game":"D4","opp":"L-37","oppText":"loser of 37","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}},{"res":"L","game":"D7","opp":"W-45","oppText":"winner of 45","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]},{"place":4,"tok":"4C II","label":"4th II-C","game":"45","opp":"1D JJ","oppText":"1st of JJ-D","outs":[{"res":"W","game":"D7","opp":"L-40","oppText":"loser of 40","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}},{"res":"L","game":"E3","opp":"W-48","oppText":"winner of 48","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]}]},{"res":"L","pool":"JJ","col":"D","mates":["L-B4","L-B6","W-C4","W-C5"],"matesText":["loser of B4","loser of B6","winner of C4","winner of C5"],"places":[{"place":1,"tok":"1D JJ","label":"1st JJ-D","game":"45","opp":"4C II","oppText":"4th of II-C","outs":[{"res":"W","game":"D7","opp":"L-40","oppText":"loser of 40","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}},{"res":"L","game":"E3","opp":"W-48","oppText":"winner of 48","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]},{"place":2,"tok":"2D JJ","label":"2nd JJ-D","game":"50","opp":"3A JJ","oppText":"3rd of JJ-A","outs":[{"res":"W","game":"E1","opp":"L-43","oppText":"loser of 43","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}},{"res":"L","game":"E8","opp":"W-51","oppText":"winner of 51","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]},{"place":3,"tok":"3D JJ","label":"3rd JJ-D","game":"49","opp":"2C JJ","oppText":"2nd of JJ-C","outs":[{"res":"W","game":"E2","opp":"L-44","oppText":"loser of 44","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}},{"res":"L","game":"E7","opp":"W-52","oppText":"winner of 52","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]},{"place":4,"tok":"4D JJ","label":"4th JJ-D","game":"54","opp":"1A KK","oppText":"1st of KK-A","outs":[{"res":"W","game":"E5","opp":"L-47","oppText":"loser of 47","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}},{"res":"L","leaf":{"leagues":["RDL"],"ranked":false,"how":"L-54 plays no Rnd 2 game -> RDL"}}]}]}]},{"place":4,"tok":"4C P9","leagues":["VJL6","VJL7","RDL"],"kind":"game","game":"B8","opp":"1C P11","oppText":"1st of Pool 11C","branches":[{"res":"W","pool":"II","col":"B","mates":["L-A3","L-A9","W-B3","W-B8"],"matesText":["loser of A3","loser of A9","winner of B3","winner of B8"],"places":[{"place":1,"tok":"1B II","label":"1st II-B","game":"35","opp":"4A HH","oppText":"4th of HH-A","outs":[{"res":"W","game":"D1","opp":"L-34","oppText":"loser of 34","win":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"},"lose":{"leagues":["VJL6","VJL7"],"ranked":true,"how":"best 18 of the rest of B4-D1 -> VJL6, others -> VJL7"}},{"res":"L","game":"D2","opp":"W-42","oppText":"winner of 42","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]},{"place":2,"tok":"2B II","label":"2nd II-B","game":"40","opp":"3C II","oppText":"3rd of II-C","outs":[{"res":"W","game":"D4","opp":"L-37","oppText":"loser of 37","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}},{"res":"L","game":"D7","opp":"W-45","oppText":"winner of 45","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]},{"place":3,"tok":"3B II","label":"3rd II-B","game":"39","opp":"2A II","oppText":"2nd of II-A","outs":[{"res":"W","game":"D5","opp":"L-38","oppText":"loser of 38","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}},{"res":"L","game":"D6","opp":"W-46","oppText":"winner of 46","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]},{"place":4,"tok":"4B II","label":"4th II-B","game":"44","opp":"1C JJ","oppText":"1st of JJ-C","outs":[{"res":"W","game":"D8","opp":"L-41","oppText":"loser of 41","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}},{"res":"L","game":"E2","opp":"W-49","oppText":"winner of 49","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]}]},{"res":"L","pool":"JJ","col":"B","mates":["L-B2","L-B8","W-C2","W-C7"],"matesText":["loser of B2","loser of B8","winner of C2","winner of C7"],"places":[{"place":1,"tok":"1B JJ","label":"1st JJ-B","game":"43","opp":"4A II","oppText":"4th of II-A","outs":[{"res":"W","game":"D9","opp":"L-42","oppText":"loser of 42","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}},{"res":"L","game":"E1","opp":"W-50","oppText":"winner of 50","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]},{"place":2,"tok":"2B JJ","label":"2nd JJ-B","game":"48","opp":"3C JJ","oppText":"3rd of JJ-C","outs":[{"res":"W","game":"E3","opp":"L-45","oppText":"loser of 45","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}},{"res":"L","game":"E6","opp":"W-53","oppText":"winner of 53","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]},{"place":3,"tok":"3B JJ","label":"3rd JJ-B","game":"47","opp":"2A JJ","oppText":"2nd of JJ-A","outs":[{"res":"W","game":"E4","opp":"L-46","oppText":"loser of 46","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}},{"res":"L","game":"E5","opp":"W-54","oppText":"winner of 54","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}}]},{"place":4,"tok":"4B JJ","label":"4th JJ-B","game":"52","opp":"1C KK","oppText":"1st of KK-C","outs":[{"res":"W","game":"E7","opp":"L-49","oppText":"loser of 49","win":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"},"lose":{"leagues":["VJL7","RDL"],"ranked":true,"how":"best 20 of the rest of D2-E8 -> VJL7, others -> RDL"}},{"res":"L","leaf":{"leagues":["RDL"],"ranked":false,"how":"L-52 plays no Rnd 2 game -> RDL"}}]}]}]}]};
+const ORD = n => n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : n + 'th';
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const fmtDate = iso => { const m = /^(\d{4})-(\d\d)-(\d\d)/.exec(iso || ''); if (!m) return ''; const d = new Date(+m[1], +m[2] - 1, +m[3]); return `${DOW[d.getDay()]} ${+m[3]} ${MON[+m[2] - 1]}`; };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const short = t => (t || '').replace(/\s+U\d+\s+(Boys|Girls)\s+\d+$/i, '');
+const hum = tok => {
+  let m = /^(\d)([A-F]) P(\d+)$/.exec(tok); if (m) return `${ORD(+m[1])} of Pool ${m[3]}${m[2]}`;
+  m = /^(\d)([A-D]) ([A-Z]{2})$/.exec(tok); if (m) return `${ORD(+m[1])} of ${m[3]}-${m[2]}`;
+  m = /^([WL])-(\w+)$/.exec(tok); if (m) return `${m[1] === 'W' ? 'winner' : 'loser'} of <code>${esc(m[2])}</code>`;
+  return esc(tok);
+};
+const LG = Object.fromEntries(D.leagues.map((l, i) => [l.id, { ...l, i }]));
+const me = D.pool.team;
+const games = (D.pool.games || []).filter(g => g.home && g.away);
+const teams = [...new Set([...(D.pool.teams || []), me])].filter(Boolean);
+const isPlayed = g => g.hs != null && g.as != null;
+const KEY = 'grading-whatif-' + D.position + '-' + (D.pool.fetched || '');
+let S = { pool: {}, p1: {}, p2: {}, r1: {} };
+try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && s.pool) S = s; } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+
+// ---- pool ranking (same rules as scripts/pool_outcomes.py) ----
+function rank(res) {
+  const pts = {}; teams.forEach(t => pts[t] = 0);
+  res.forEach(([w, l]) => { pts[w] += 3; pts[l] += 1; });
+  const mini = group => { const g = new Set(group), mp = {}; group.forEach(t => mp[t] = 0);
+    res.forEach(([w, l]) => { if (g.has(w) && g.has(l)) { mp[w] += 3; mp[l] += 1; } }); return mp; };
+  const desc = arr => [...new Set(arr)].sort((a, b) => b - a);
+  const out = {}; let pos = 1;
+  for (const p of desc(teams.map(t => pts[t]))) {
+    const tied = teams.filter(t => pts[t] === p);
+    if (tied.length === 1) out[tied[0]] = [pos, pos];
+    else {
+      const mp = mini(tied); let sub = pos;
+      for (const q of desc(tied.map(t => mp[t]))) {
+        const grp = tied.filter(t => mp[t] === q);
+        if (grp.length === 1) out[grp[0]] = [sub, sub];
+        else if (grp.length === tied.length) grp.forEach(t => out[t] = [sub, sub + grp.length - 1]);
+        else { const mp2 = mini(grp); let s2 = sub;
+          for (const r of desc(grp.map(t => mp2[t]))) { const g2 = grp.filter(t => mp2[t] === r); g2.forEach(t => out[t] = [s2, s2 + g2.length - 1]); s2 += g2.length; } }
+        sub += grp.length;
+      }
+    }
+    pos += tied.length;
+  }
+  return out;
+}
+const winLose = (g, homeWins) => homeWins ? [g.home, g.away] : [g.away, g.home];
+function analyse() {
+  const fixed = [], open = [];
+  games.forEach((g, i) => {
+    if (isPlayed(g)) fixed.push(winLose(g, g.hs > g.as));
+    else if (S.pool[i]) fixed.push(winLose(g, S.pool[i] === 'H'));
+    else open.push(i);
+  });
+  const certain = new Set(), pct = new Set(), byOwn = {}, per = {};
+  open.forEach(i => per[i] = { H: { sum: 0, n: 0, set: new Set() }, A: { sum: 0, n: 0, set: new Set() } });
+  for (let mask = 0; mask < (1 << open.length); mask++) {
+    const res = fixed.slice(), own = [], picks = {};
+    open.forEach((i, k) => { const g = games[i], h = (mask >> k) & 1; const r = winLose(g, h); res.push(r); picks[i] = h ? 'H' : 'A';
+      if (g.home === me || g.away === me) own.push(r[0] === me ? 'W' : 'L'); });
+    const [lo, hi] = rank(res)[me];
+    const k = own.join('-');
+    byOwn[k] = byOwn[k] || new Set();
+    for (let p = lo; p <= hi; p++) { (lo === hi ? certain : pct).add(p); byOwn[k].add(p); }
+    open.forEach(i => { const b = per[i][picks[i]]; b.sum += (lo + hi) / 2; b.n++; for (let p = lo; p <= hi; p++) b.set.add(p); });
+  }
+  const possible = new Set([...certain, ...pct]);
+  const pctOnly = new Set([...pct].filter(p => !certain.has(p)));
+  return { possible, pctOnly, byOwn, per, open, ownGames: open.filter(i => games[i].home === me || games[i].away === me) };
+}
+
+// ---- path tree ----
+const finStatus = (A, p) => A.possible.has(p) ? (A.pctOnly.has(p) ? 'pct' : 'open') : 'closed';
+function walk(A, fn, ignoreFinish) {
+  for (const f of D.finishes) {
+    const fOn = ignoreFinish || finStatus(A, f.place) !== 'closed';
+    if (f.leaf) { fn(f, f.leaf, fOn); continue; }
+    for (const b of f.branches || []) {
+      const bOn = fOn && (!b.res || !S.p1[f.place] || S.p1[f.place] === b.res);
+      if (b.leaf) { fn(f, b.leaf, bOn); continue; }
+      const bk = f.place + (b.res || '');
+      for (const pl of b.places) {
+        const pOn = bOn && (!S.p2[bk] || S.p2[bk] === pl.place);
+        if (pl.leaf) { fn(f, pl.leaf, pOn); continue; }
+        for (const o of pl.outs) {
+          const oOn = pOn && (!S.r1[bk + pl.place] || S.r1[bk + pl.place] === o.res);
+          if (o.leaf) fn(f, o.leaf, oOn); else { fn(f, o.win, oOn); fn(f, o.lose, oOn); }
+        }
+      }
+    }
+  }
+}
+const sortL = ls => [...new Set(ls)].sort((a, b) => LG[a].i - LG[b].i);
+function leaguesFor(A, places) {
+  const ls = []; walk(A, (f, lf, on) => { if (on && places.has(f.place)) ls.push(...lf.leagues); }, true); return sortL(ls);
+}
+const chip = id => `<span class="chip" style="--lgc:${LG[id]?.color || '#ccc'}">${esc(id)}</span>`;
+const chips = lf => `<span class="chips${lf.leagues.length > 1 ? ' ranked' : ''}" title="${esc(lf.how)}">${lf.leagues.map(chip).join('')}</span>`;
+const span = ls => !ls.length ? 'none' : ls.length === 1 ? ls[0] : `${ls[0]} to ${ls[ls.length - 1]}`;
+
+// ---- render ----
+function render() {
+  const A = analyse();
+  const what = Object.values(S).some(o => Object.keys(o).length);
+  document.getElementById('whatif').hidden = !what;
+
+  // pool games
+  const gEl = document.getElementById('games');
+  gEl.innerHTML = games.map((g, i) => {
+    const when = `<span class="when">${fmtDate(g.date)}</span>`;
+    const name = t => t === me ? `<b>${esc(short(t))}</b>` : esc(short(t));
+    if (isPlayed(g)) {
+      const hw = g.hs > g.as;
+      return `<div class="game">${when}<span class="who">${hw ? '<b>' + esc(short(g.home)) + '</b>' : esc(short(g.home))} v ${!hw ? '<b>' + esc(short(g.away)) + '</b>' : esc(short(g.away))}</span><span class="score">${g.hs}-${g.as}</span></div>`;
+    }
+    const v = S.pool[i];
+    return `<div class="game">${when}<span class="who">${name(g.home)} v ${name(g.away)}</span><span class="seg" role="group" aria-label="Result">
+      <button type="button" data-act="pool" data-k="${i}" data-v="H" aria-pressed="${v === 'H'}">${esc(short(g.home))}</button>
+      <button type="button" data-act="pool" data-k="${i}" data-v="A" aria-pressed="${v === 'A'}">${esc(short(g.away))}</button></span></div>`;
+  }).join('');
+
+  // finishes
+  const label = { open: 'possible', pct: 'only on percentage', closed: 'ruled out' };
+  document.getElementById('finishes').innerHTML = D.finishes.map(f => {
+    const st = finStatus(A, f.place);
+    return `<div class="fin ${st}"><b>${ORD(f.place)}</b><span>${label[st]}</span></div>`;
+  }).join('');
+
+  // leagues
+  const onL = {}, offL = {};
+  walk(A, (f, lf, on) => lf.leagues.forEach(l => (on ? onL : offL)[l] = ((on ? onL : offL)[l] || 0) + 1));
+  document.getElementById('leagues').innerHTML = D.leagues.map(l => {
+    const st = onL[l.id] ? 'open' : offL[l.id] ? 'closed' : 'none';
+    const sub = st === 'open' ? `${onL[l.id]} path${onL[l.id] > 1 ? 's' : ''}` : st === 'closed' ? 'ruled out' : 'not reachable';
+    return `<div class="lg ${st}" style="--lgc:${l.color}" title="${esc(l.name)} (seeds ${l.seeds})"><b>${esc(l.id)}</b><span>${sub}</span></div>`;
+  }).join('');
+
+  // facts
+  const live = sortL(Object.keys(onL));
+  const facts = [];
+  if (live.length) facts.push(`Best still possible: <b>${live[0]}</b>. Worst: <b>${live[live.length - 1]}</b>.`);
+  const closed = D.finishes.filter(f => finStatus(A, f.place) === 'closed').map(f => ORD(f.place));
+  facts.push(closed.length ? `Ruled out: ${closed.join(', ')}.` : 'No finish is ruled out yet.');
+  const [s0, s1] = (D.seeds || '').split('-').map(Number);
+  const bySeed = D.leagues.filter(l => { if (!l.size) return false; const [a, b] = l.seeds.split('-').map(Number); return a <= s1 && b >= s0; }).map(l => l.id);
+  if (bySeed.length) facts.push(`By seeding alone (teams ${D.seeds}), Pool ${esc(D.position.replace(/[A-F]$/, ''))} lines up with ${bySeed.join(' / ')}.`);
+  let best = null;
+  for (const i of A.open) { const p = A.per[i]; if (!p.H.n || !p.A.n) continue;
+    const d = Math.abs(p.H.sum / p.H.n - p.A.sum / p.A.n);
+    const ownG = games[i].home === me || games[i].away === me;
+    if (!best || d > best.d + 1e-9 || (Math.abs(d - best.d) < 1e-9 && ownG && !best.own)) best = { i, d, p, own: ownG }; }
+  if (best && best.d > 0) {
+    const g = games[best.i];
+    const meHome = g.home === me, mine = meHome || g.away === me;
+    const w = mine ? (meHome ? best.p.H : best.p.A) : best.p.H, l = mine ? (meHome ? best.p.A : best.p.H) : best.p.A;
+    facts.push(`Biggest game left: <b>${esc(short(g.home))} v ${esc(short(g.away))}</b>, ${fmtDate(g.date)}. ` +
+      (mine ? `Average finish ${(w.sum / w.n).toFixed(2)} with a win, ${(l.sum / l.n).toFixed(2)} with a loss (other games 50/50).`
+            : `It moves the average finish by ${best.d.toFixed(2)} places.`));
+  }
+  document.getElementById('facts').innerHTML = facts.map(f => `<li><span>${f}</span></li>`).join('');
+
+  // own results table
+  const ownT = document.getElementById('own');
+  const keys = Object.keys(A.byOwn).filter(k => k);
+  if (A.ownGames.length && keys.length > 1) {
+    const opps = A.ownGames.map(i => 'v ' + esc(short(games[i].home === me ? games[i].away : games[i].home)));
+    keys.sort((a, b) => (a.match(/L/g) || []).length - (b.match(/L/g) || []).length);
+    ownT.innerHTML = `<tr><th>${opps.join(', ')}</th><th>Finish</th><th>Leagues</th></tr>` + keys.map(k => {
+      const ps = [...A.byOwn[k]].sort();
+      const txt = k.split('-').map(x => x === 'W' ? 'Win' : 'Lose').join(', ');
+      return `<tr><td>${txt}</td><td>${ps.map(ORD).join(', ')}</td><td>${span(leaguesFor(A, new Set(ps)))}</td></tr>`;
+    }).join('');
+  } else ownT.innerHTML = '';
+
+  // cards
+  document.getElementById('cards').innerHTML = D.finishes.map(f => card(A, f)).join('');
+}
+
+function card(A, f) {
+  const st = finStatus(A, f.place);
+  const stTxt = { open: 'Possible', pct: 'Only on percentage', closed: 'Ruled out' }[st];
+  const fOff = st === 'closed';
+  let body = '';
+  if (f.leaf) body = `<div class="branch">${chips(f.leaf)}</div>`;
+  else {
+    if (f.kind === 'game') {
+      const v = S.p1[f.place];
+      body += `<div class="xover"><span>Phase One crossover <code>${esc(f.game)}</code> v ${hum(f.opp)}</span>
+        <span class="seg"><button type="button" data-act="p1" data-k="${f.place}" data-v="W" aria-pressed="${v === 'W'}">Won</button><button type="button" data-act="p1" data-k="${f.place}" data-v="L" aria-pressed="${v === 'L'}">Lost</button></span></div>`;
+    }
+    for (const b of f.branches) {
+      const bOff = !fOff && b.res && S.p1[f.place] && S.p1[f.place] !== b.res;
+      const bk = f.place + (b.res || '');
+      if (b.leaf) { body += `<div class="branch${bOff ? ' off' : ''}">${chips(b.leaf)}</div>`; continue; }
+      const head = b.res ? `${b.res === 'W' ? 'Win' : 'Lose'} <span class="arrow">→</span> Pool ${esc(b.pool)} · column ${esc(b.col)}` : `Pool ${esc(b.pool)} · column ${esc(b.col)}`;
+      const own = b.res ? `${b.res}-${f.game}` : f.tok;
+      const mates = b.mates.filter(x => x !== own).map(hum).join(', ');
+      body += `<div class="branch${bOff ? ' off' : ''}"><h4>${head}</h4><p class="mates">Column with ${mates}</p><ol class="places">`;
+      for (const pl of b.places) {
+        const sel = S.p2[bk];
+        const pOff = !bOff && !fOff && sel && sel !== pl.place;
+        body += `<li class="pl${pOff ? ' off' : ''}"><button type="button" class="pbtn" data-act="p2" data-k="${bk}" data-v="${pl.place}" aria-pressed="${sel === pl.place}" title="Finished ${ORD(pl.place)} in ${esc(b.pool)}-${esc(b.col)}">${ORD(pl.place)}</button><div class="r1">`;
+        if (pl.leaf) { body += chips(pl.leaf) + '</div></li>'; continue; }
+        body += `Rnd 1 game <code>${esc(pl.game)}</code> v ${hum(pl.opp)}`;
+        const rk = bk + pl.place;
+        for (const o of pl.outs) {
+          const rsel = S.r1[rk];
+          const oOff = !pOff && !bOff && !fOff && rsel && rsel !== o.res;
+          const btn = `<button type="button" class="rbtn" data-act="r1" data-k="${rk}" data-v="${o.res}" aria-pressed="${rsel === o.res}">${o.res === 'W' ? 'Win' : 'Lose'}</button>`;
+          let rest;
+          if (o.leaf) rest = `<span class="then">→</span> ${chips(o.leaf)}`;
+          else {
+            const same = o.win.leagues.join() === o.lose.leagues.join();
+            rest = `<span class="then">→ Rnd 2 <code>${esc(o.game)}</code> v ${hum(o.opp)}:</span> ` +
+              (same ? `either way ${chips(o.win)}` : `win ${chips(o.win)} lose ${chips(o.lose)}`);
+          }
+          body += `<div class="out${oOff ? ' off' : ''}">${btn}${rest}</div>`;
+        }
+        body += '</div></li>';
+      }
+      body += '</ol></div>';
+    }
+  }
+  return `<article class="card${fOff ? ' off' : ''}"><header><span class="big">${ORD(f.place)}</span>
+    <div class="t"><b>in Pool ${esc(D.position)}</b><div>reaches ${span(f.leagues)}</div></div><span class="status ${st}">${stTxt}</span></header>${body}</article>`;
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]');
+  if (!b) return;
+  const { act, k } = b.dataset; let v = b.dataset.v;
+  if (act === 'p2') v = +v;
+  if (S[act][k] === v) delete S[act][k]; else S[act][k] = v;
+  save(); render();
+});
+document.getElementById('reset').addEventListener('click', () => { S = { pool: {}, p1: {}, p2: {}, r1: {} }; save(); render(); });
+
+// static text
+document.getElementById('eyebrow').textContent = D.map || 'VJBL grading';
+document.getElementById('title').textContent = `Where can ${D.name} finish?`;
+document.getElementById('lede').innerHTML = `${esc(D.name)} (${esc(me)}) is in <b>Pool ${esc(D.position)}</b> of Grading Phase One` +
+  (D.seeds ? `, the band for teams seeded ${esc(D.seeds)}` : '') + `. Each finish leads to a crossover game, a Phase Two pool and then a league. Results so far decide which paths are still open.`;
+document.getElementById('poolTitle').textContent = `Pool ${D.position}`;
+document.getElementById('asof').textContent = D.pool.fetched ? `Results as of ${fmtDate(D.pool.fetched)}` : '';
+const lad = (D.pool.ladder && D.pool.ladder[0] && D.pool.ladder[0].standings) || [];
+document.getElementById('ladder').innerHTML = `<tr><th>#</th><th>Team</th><th class="n">P</th><th class="n">W</th><th class="n">L</th><th class="n">Pts</th><th class="n">%</th></tr>` +
+  lad.map(s => `<tr class="${s.team === me ? 'me' : ''}"><td>${s.pos}</td><td>${esc(short(s.team))}</td><td class="n">${s.P}</td><td class="n">${s.W}</td><td class="n">${s.L}</td><td class="n">${s.PTS}</td><td class="n">${s.pct ?? ''}</td></tr>`).join('');
+document.getElementById('foot').innerHTML = [
+  'Pool ladders rank by points (win 3, loss 1), then head-to-head, then percentage. A finish marked "only on percentage" needs a tie that margins would settle.',
+  'A dashed pair of leagues means the map sends the team to "best ranked remaining teams" of a group of games. VJBL does not publish how it ranks them.',
+  ...(D.caveats || []).map(esc),
+  `Source: PlayHQ results and the ${esc(D.map || 'VJBL grading map')}.`,
+].map(t => `<div>${t}</div>`).join('');
+render();
+</script>
+
+</html>
