@@ -58,6 +58,7 @@ tr.me td:first-child { box-shadow: inset 3px 0 0 var(--accent) }
 .games { display: grid; gap: 8px; margin-top: 14px }
 .game { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 10px; align-items: center }
 .game .when { color: var(--muted); font-size: 12px }
+.ghint { margin: 2px 0 0; font-size: 12.5px; color: var(--muted) }
 .game .who { min-width: 0 }
 .game .who b { font-weight: 600 }
 .score { font-weight: 600; font-size: 13px }
@@ -174,8 +175,9 @@ footer .src { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--lin
     <button class="btn" id="reset" type="button">Reset to real results</button>
   </section>
   <!-- the one thing worth a key: what a dashed pair means (Huan, Nov 2026: the legend row is gone) -->
-  <p class="lede" style="margin:-8px 0 0">Tap a result (W / L, a place, or a pool game above) to see what's left if it happens. Tap it again to undo. Greyed paths are ruled out.
-    A dashed pair such as <span class="chips ranked sample"><span class="chip">VJL5</span><span class="chip">VJL6</span></span> means one of the two: VJBL ranks the leftover teams to decide, and doesn't publish how.</p>
+  <!-- the what-if buttons say Win / Lose (games still to come), as on every game below (Huan, Nov 2026) -->
+  <p class="lede" style="margin:-8px 0 0">To try a what-if, choose a ladder place, or Win or Lose for a crossover game. Choose it again to undo. Greyed paths are ruled out.
+    A dashed pair such as <span class="chips ranked sample"><span class="chip">VJL5</span><span class="chip">VJL6</span></span> means one of the two: VJBL ranks the remaining teams from those games to decide, and doesn't publish how.</p>
   <section class="cards" id="cards"></section>
 
   <footer id="foot"></footer>
@@ -305,10 +307,12 @@ function render() {
       return `<div class="game">${when}<span class="who">${hw ? '<b>' + esc(short(g.home)) + '</b>' : esc(short(g.home))} v ${!hw ? '<b>' + esc(short(g.away)) + '</b>' : esc(short(g.away))}</span><span class="score">${g.hs}-${g.as}</span></div>`;
     }
     const v = S.pool[i];
-    return `<div class="game todo">${when}<span class="who">${name(g.home)} v ${name(g.away)}</span><span class="seg" role="group" aria-label="Result">
+    return `<div class="game todo">${when}<span class="who">${name(g.home)} v ${name(g.away)}</span><span class="seg" role="group" aria-label="Who wins (what-if)">
       <button type="button" data-act="pool" data-k="${i}" data-v="H" aria-pressed="${v === 'H'}">${esc(short(g.home))}</button>
       <button type="button" data-act="pool" data-k="${i}" data-v="A" aria-pressed="${v === 'A'}">${esc(short(g.away))}</button></span></div>`;
-  }).join('');
+  }).join('') +
+  // the hint for these buttons sits with them, not in the paths section further down (Huan, Nov 2026)
+  (games.some(g => !isPlayed(g)) ? '<p class="ghint">For a game still to play, choose who wins to see what it changes. Choose it again to undo.</p>' : '');
 
   // finishes
   const label = { open: 'possible', pct: 'only on percentage', closed: 'ruled out' };
@@ -334,10 +338,10 @@ function render() {
     : `<small>${what ? 'With these what-ifs, still possible' : 'Still possible'}</small> <span class="range">${chip(live[0])} <small>to</small> ${chip(live[live.length - 1])}</span>`;
   const facts = [];
   const closed = D.finishes.filter(f => finStatus(A, f.place) === 'closed').map(f => ORD(f.place));
-  facts.push(closed.length ? `Ruled out: ${closed.join(', ')}.` : 'No finish is ruled out yet.');
+  facts.push(closed.length ? `Ruled out: ${closed.join(', ')}.` : 'No pool place is ruled out yet.');
   const [s0, s1] = (D.seeds || '').split('-').map(Number);
   const bySeed = D.leagues.filter(l => { if (!l.size) return false; const [a, b] = l.seeds.split('-').map(Number); return a <= s1 && b >= s0; }).map(l => l.id);
-  if (bySeed.length) facts.push(`By seeding alone (teams ${D.seeds}), Pool ${esc(D.position.replace(/[A-F]$/, ''))} lines up with ${bySeed.join(' / ')}.`);
+  if (bySeed.length) facts.push(`By seeding alone (teams ${esc(D.seeds).replace('-', '–')}), Pool ${esc(D.position.replace(/[A-F]$/, ''))} lines up with ${bySeed.join(' / ')}.`);
   let best = null;
   for (const i of A.open) { const p = A.per[i]; if (!p.H.n || !p.A.n) continue;
     const d = Math.abs(p.H.sum / p.H.n - p.A.sum / p.A.n);
@@ -364,7 +368,7 @@ function render() {
   if (A.ownGames.length && keys.length > 1) {
     const opps = A.ownGames.map(i => 'v ' + esc(short(games[i].home === me ? games[i].away : games[i].home)));
     keys.sort((a, b) => (a.match(/L/g) || []).length - (b.match(/L/g) || []).length);
-    ownT.innerHTML = `<tr><th>${opps.join(', ')}</th><th>Finish</th><th>Leagues</th></tr>` + keys.map(k => {
+    ownT.innerHTML = `<tr><th>${opps.join(', ')}</th><th>Pool place</th><th>Grades</th></tr>` + keys.map(k => {
       const ps = [...A.byOwn[k]].sort();
       const txt = k.split('-').map(x => x === 'W' ? 'Win' : 'Lose').join(', ');
       return `<tr><td>${txt}</td><td>${ps.map(ORD).join(', ')}</td><td>${span(leaguesFor(A, new Set(ps)))}</td></tr>`;
@@ -385,7 +389,7 @@ function card(A, f) {
     if (f.kind === 'game') {
       const v = S.p1[f.place];
       body += `<div class="xover"><span>Phase One crossover <code>${esc(f.game)}</code> v ${hum(f.opp)}</span>
-        <span class="seg"><button type="button" data-act="p1" data-k="${f.place}" data-v="W" aria-pressed="${v === 'W'}">Won</button><button type="button" data-act="p1" data-k="${f.place}" data-v="L" aria-pressed="${v === 'L'}">Lost</button></span></div>`;
+        <span class="seg"><button type="button" data-act="p1" data-k="${f.place}" data-v="W" aria-pressed="${v === 'W'}">Win</button><button type="button" data-act="p1" data-k="${f.place}" data-v="L" aria-pressed="${v === 'L'}">Lose</button></span></div>`;
     }
     for (const b of f.branches) {
       const bOff = !fOff && b.res && S.p1[f.place] && S.p1[f.place] !== b.res;
@@ -446,9 +450,12 @@ document.getElementById('whatif').addEventListener('click', resetAll);
 const YEAR = ((D.season || '').match(/\d{4}(\/\d{2,4})?/) || [''])[0];
 document.getElementById('title').textContent = `Where can ${D.name} finish in ${YEAR ? YEAR + ' ' : ''}VJBL grading?`;
 if (D.seasonDates) document.getElementById('title').title = `${D.season || 'Season'}: ${D.seasonDates}`;
-document.getElementById('lede').innerHTML = `${esc(D.name)} is in <b>Pool ${esc(D.position)}</b> of VJBL Grading Phase One` +
-  (D.seeds ? `, the band for teams seeded ${esc(D.seeds)}` : '') +
-  `. Each finish leads to a crossover game, a Phase Two pool and then a league. Results so far decide which paths are still open.`;
+// one line under the answer: the stage, pool and seed band, and how a pool place becomes a grade
+// (Huan, Nov 2026: no repeat of the team name; "grade", not "league"; "ladder place", not "finish";
+// name the real steps: Phase One pool, crossover, Phase Two pool, crossover, grade)
+document.getElementById('lede').innerHTML = `Phase One, Pool ${esc(D.position)}` + (D.seeds ? ` (seeds ${esc(D.seeds).replace('-', '–')})` : '') +
+  `. Grading goes Phase One pool, crossover, Phase Two pool, crossover, and then the grade is set. ` +
+  `The team's ladder place in each pool decides its crossover game.`;
 document.getElementById('poolTitle').textContent = `Pool ${D.position}`;
 document.getElementById('asof').innerHTML = (D.pool.fetched ? `Results as of ${fmtDate(D.pool.fetched)}` : '') +
   (D.teamUrl ? ` · <a href="${esc(D.teamUrl)}" target="_blank" rel="noopener">PlayHQ</a>` : '');
