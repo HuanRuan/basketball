@@ -150,6 +150,9 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
 .chips { display: inline-flex; gap: 3px; align-items: center }
 .chips.ranked .chip { border-style: dashed }
 .chips.ranked::after { content: "ranked"; font-size: 10.5px; color: var(--muted); margin-left: 2px }
+/* in the answer, the words after the pair say who decides it, so no "ranked" tag; a little gap between chips */
+.answer .chips.ranked { gap: 6px }
+.answer .chips.ranked::after { content: none }
 .off { opacity: .38; filter: grayscale(1) }
 .off .off { opacity: 1; filter: none }
 /* the sample dashed pair in the intro: outlined in ink, so it reads as an example, not a real league */
@@ -225,8 +228,9 @@ const teams = [...new Set([...(D.pool.teams || []), me])].filter(Boolean);
 const isPlayed = g => g.hs != null && g.as != null;
 const KEY = 'grading-whatif-' + D.position + '-' + (D.pool.fetched || '');
 // S.f: which Phase One place each choice inside a path card belongs to ("act|key" -> place)
-let S = { pool: {}, p1: {}, p2: {}, r1: {}, f: {} };
-try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && s.pool) S = { f: {}, ...s }; } catch (e) {}
+// S.r2: a round 2 result chosen under a round 1 result (key: round 1 key + its result)
+let S = { pool: {}, p1: {}, p2: {}, r1: {}, r2: {}, f: {} };
+try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && s.pool) S = { f: {}, r2: {}, ...s }; } catch (e) {}
 // a choice inside a path card assumes the team finishes in that Phase One place, so the other places'
 // paths drop out of the answer (Huan, Nov 2026: 1st, Lose, 1st in FF left VJL5 / VJL6 in the card but
 // the answer still said "VJL5 to RDL", counting the 2nd-4th cards too)
@@ -301,7 +305,9 @@ function walk(A, fn, ignoreFinish) {
         if (pl.leaf) { fn(f, pl.leaf, pOn); continue; }
         for (const o of pl.outs) {
           const oOn = pOn && (!S.r1[bk + pl.place] || S.r1[bk + pl.place] === o.res);
-          if (o.leaf) fn(f, o.leaf, oOn); else { fn(f, o.win, oOn); fn(f, o.lose, oOn); }
+          if (o.leaf) { fn(f, o.leaf, oOn); continue; }
+          const r2 = S.r2[bk + pl.place + o.res];   // a round 2 what-if (Huan, Nov 2026)
+          fn(f, o.win, oOn && r2 !== 'L'); fn(f, o.lose, oOn && r2 !== 'W');
         }
       }
     }
@@ -348,8 +354,8 @@ function render() {
   }).join('');
 
   // leagues
-  const onL = {}, offL = {};
-  walk(A, (f, lf, on) => lf.leagues.forEach(l => (on ? onL : offL)[l] = ((on ? onL : offL)[l] || 0) + 1));
+  const onL = {}, offL = {}, liveLeaves = [];
+  walk(A, (f, lf, on) => { if (on) liveLeaves.push(lf); lf.leagues.forEach(l => (on ? onL : offL)[l] = ((on ? onL : offL)[l] || 0) + 1); });
   document.getElementById('leagues').innerHTML = D.leagues.map(l => {
     const st = onL[l.id] ? 'open' : offL[l.id] ? 'closed' : 'none';
     const sub = st === 'open' ? `${onL[l.id]} path${onL[l.id] > 1 ? 's' : ''}` : st === 'closed' ? 'ruled out' : 'not reachable';
@@ -358,10 +364,17 @@ function render() {
 
   // facts
   const live = sortL(Object.keys(onL));
-  // the answer under the title: best to worst league still possible (with any what-ifs applied)
+  // the answer under the title (with any what-ifs applied), Huan, Nov 2026:
+  //  - every path left ends in the same ranked pair: that dashed pair, and who decides it
+  //  - one grade: "Goes to X"; two grades: "X or Y" (not a range); more: best to worst, "X to Y"
+  const pre = (txt) => `<small>${what ? 'With these what-ifs, ' + txt.charAt(0).toLowerCase() + txt.slice(1) : txt}</small>`;
+  const pairs = [...new Set(liveLeaves.map(lf => lf.leagues.join('|')))];
+  const onePair = liveLeaves.length && pairs.length === 1 && liveLeaves[0].leagues.length > 1;
   document.getElementById('answer').innerHTML = !live.length ? '<small>No path is left with these results.</small>'
-    : live.length === 1 ? `<small>${what ? 'With these what-ifs, goes to' : 'Goes to'}</small> ${chip(live[0])}`
-    : `<small>${what ? 'With these what-ifs, still possible' : 'Still possible'}</small> <span class="range">${chip(live[0])} <small>to</small> ${chip(live[live.length - 1])}</span>`;
+    : onePair ? `${pre('One of')} <span class="range"><span class="chips ranked">${liveLeaves[0].leagues.map(chip).join('')}</span></span> <small>VJBL ranks the remaining teams to decide.</small>`
+    : live.length === 1 ? `${pre('Goes to')} ${chip(live[0])}`
+    : live.length === 2 ? `${pre('Still possible')} <span class="range">${chip(live[0])} <small>or</small> ${chip(live[1])}</span>`
+    : `${pre('Still possible')} <span class="range">${chip(live[0])} <small>to</small> ${chip(live[live.length - 1])}</span>`;
   const facts = [];
   const closed = D.finishes.filter(f => finStatus(A, f.place) === 'closed').map(f => ORD(f.place));
   facts.push(closed.length ? `Ruled out: ${closed.join(', ')}.` : 'No pool place is ruled out yet.');
@@ -442,8 +455,14 @@ function card(A, f) {
           if (o.leaf) rest = `<span class="then">→</span> ${chips(o.leaf)}`;
           else {
             const same = o.win.leagues.join() === o.lose.leagues.join();
+            // round 2 gets its own Win / Lose what-ifs when the two results lead to different grades;
+            // choosing one also picks this round 1 result (Huan, Nov 2026: "win" / "lose" were plain words)
+            const k2 = rk + o.res, s2 = S.r2[k2], anc = oOff || pOff || bOff || fOff;
+            const b2 = (v, lbl) => `<button type="button" class="rbtn" data-act="r2" data-f="${f.place}" data-r1="${o.res}" data-k="${k2}" data-v="${v}" aria-pressed="${s2 === v}">${lbl}</button>`;
             rest = `<span class="then">→ Rnd 2 <code>${esc(o.game)}</code> v ${hum(o.opp)}:</span> ` +
-              (same ? `either way ${chips(o.win)}` : `win ${chips(o.win)} lose ${chips(o.lose)}`);
+              (same ? `either way ${chips(o.win)}`
+                : `${b2('W', 'Win')} <span class="${!anc && s2 === 'L' ? 'off' : ''}">${chips(o.win)}</span> ` +
+                  `${b2('L', 'Lose')} <span class="${!anc && s2 === 'W' ? 'off' : ''}">${chips(o.lose)}</span>`);
           }
           body += `<div class="out${oOff ? ' off' : ''}">${btn}${rest}</div>`;
         }
@@ -475,9 +494,11 @@ document.addEventListener('click', e => {
   if (S[act][k] === v) delete S[act][k]; else S[act][k] = v;
   // remember which Phase One place a path-card choice belongs to (see assumedPlaces)
   if (b.dataset.f) { const fk = act + '|' + k; if (S[act][k] === undefined) delete S.f[fk]; else S.f[fk] = +b.dataset.f; }
+  // a round 2 choice implies the round 1 result it sits under
+  if (act === 'r2' && S.r2[k] !== undefined) { const k1 = k.slice(0, -1); S.r1[k1] = b.dataset.r1; S.f['r1|' + k1] = +b.dataset.f; }
   save(); render();
 });
-const resetAll = () => { S = { pool: {}, p1: {}, p2: {}, r1: {}, f: {} }; save(); render(); };
+const resetAll = () => { S = { pool: {}, p1: {}, p2: {}, r1: {}, r2: {}, f: {} }; save(); render(); };
 document.getElementById('reset').addEventListener('click', resetAll);
 document.getElementById('whatif').addEventListener('click', resetAll);
 
