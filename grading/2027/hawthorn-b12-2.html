@@ -58,6 +58,7 @@ tr.me td:first-child { box-shadow: inset 3px 0 0 var(--accent) }
 .games { display: grid; gap: 8px; margin-top: 14px }
 .game { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 10px; align-items: center }
 .game .when { color: var(--muted); font-size: 12px }
+.tocome { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); text-wrap: pretty }
 /* "Who wins?" inside each unplayed game's buttons, so they read as a question to answer */
 .seg .q { font: 600 12px/1 var(--body); color: var(--ink); padding: 6px 9px; border-right: 1px solid var(--line); white-space: nowrap; align-self: center }
 @media (max-width: 560px) { .seg .q { padding: 6px 7px } .game.todo .seg button { padding: 6px 7px } }
@@ -183,6 +184,9 @@ footer .src { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--lin
       <div class="sub"><h2 id="poolTitle">Pool</h2><small id="asof"></small></div>
       <table id="ladder"></table>
       <div class="games" id="games"></div>
+      <!-- how many grading stages are left (Huan, Nov 2026). The page covers Phase One so far; when Phase
+           Two support comes, this shortens as stages finish (see the scratch drafts of Nov 2026) -->
+      <p class="tocome" id="tocome">Still to come: Phase One crossover, Phase Two pool, Phase Two crossover rounds 1 and 2.</p>
     </div>
     <div class="panel">
       <div class="sub"><h2>Where it can end up</h2></div>
