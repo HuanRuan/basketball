@@ -224,8 +224,13 @@ const games = (D.pool.games || []).filter(g => g.home && g.away);
 const teams = [...new Set([...(D.pool.teams || []), me])].filter(Boolean);
 const isPlayed = g => g.hs != null && g.as != null;
 const KEY = 'grading-whatif-' + D.position + '-' + (D.pool.fetched || '');
-let S = { pool: {}, p1: {}, p2: {}, r1: {} };
-try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && s.pool) S = s; } catch (e) {}
+// S.f: which Phase One place each choice inside a path card belongs to ("act|key" -> place)
+let S = { pool: {}, p1: {}, p2: {}, r1: {}, f: {} };
+try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && s.pool) S = { f: {}, ...s }; } catch (e) {}
+// a choice inside a path card assumes the team finishes in that Phase One place, so the other places'
+// paths drop out of the answer (Huan, Nov 2026: 1st, Lose, 1st in FF left VJL5 / VJL6 in the card but
+// the answer still said "VJL5 to RDL", counting the 2nd-4th cards too)
+const assumedPlaces = () => new Set(Object.values(S.f || {}));
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 
 // ---- pool ranking (same rules as scripts/pool_outcomes.py) ----
@@ -283,8 +288,9 @@ function analyse() {
 // ---- path tree ----
 const finStatus = (A, p) => A.possible.has(p) ? (A.pctOnly.has(p) ? 'pct' : 'open') : 'closed';
 function walk(A, fn, ignoreFinish) {
+  const assumed = assumedPlaces();
   for (const f of D.finishes) {
-    const fOn = ignoreFinish || finStatus(A, f.place) !== 'closed';
+    const fOn = ignoreFinish || (finStatus(A, f.place) !== 'closed' && (!assumed.size || assumed.has(f.place)));
     if (f.leaf) { fn(f, f.leaf, fOn); continue; }
     for (const b of f.branches || []) {
       const bOn = fOn && (!b.res || !S.p1[f.place] || S.p1[f.place] === b.res);
@@ -402,14 +408,16 @@ function render() {
 function card(A, f) {
   const st = finStatus(A, f.place);
   const stTxt = { open: 'Possible', pct: 'Only on percentage', closed: 'Ruled out' }[st];
-  const fOff = st === 'closed';
+  // greyed when the pool results rule it out, or when a what-if in another place's card assumes that place
+  const assumed = assumedPlaces();
+  const fOff = st === 'closed' || (assumed.size > 0 && !assumed.has(f.place));
   let body = '';
   if (f.leaf) body = `<div class="branch">${chips(f.leaf)}</div>`;
   else {
     if (f.kind === 'game') {
       const v = S.p1[f.place];
       body += `<div class="xover"><span>Phase One crossover <code>${esc(f.game)}</code> v ${hum(f.opp)}</span>
-        <span class="seg"><button type="button" data-act="p1" data-k="${f.place}" data-v="W" aria-pressed="${v === 'W'}">Win</button><button type="button" data-act="p1" data-k="${f.place}" data-v="L" aria-pressed="${v === 'L'}">Lose</button></span></div>`;
+        <span class="seg"><button type="button" data-act="p1" data-f="${f.place}" data-k="${f.place}" data-v="W" aria-pressed="${v === 'W'}">Win</button><button type="button" data-act="p1" data-f="${f.place}" data-k="${f.place}" data-v="L" aria-pressed="${v === 'L'}">Lose</button></span></div>`;
     }
     for (const b of f.branches) {
       const bOff = !fOff && b.res && S.p1[f.place] && S.p1[f.place] !== b.res;
@@ -422,14 +430,14 @@ function card(A, f) {
       for (const pl of b.places) {
         const sel = S.p2[bk];
         const pOff = !bOff && !fOff && sel && sel !== pl.place;
-        body += `<li class="pl${pOff ? ' off' : ''}"><button type="button" class="pbtn" data-act="p2" data-k="${bk}" data-v="${pl.place}" aria-pressed="${sel === pl.place}" title="Finished ${ORD(pl.place)} in ${esc(b.pool)}-${esc(b.col)}">${ORD(pl.place)}</button><div class="r1">`;
+        body += `<li class="pl${pOff ? ' off' : ''}"><button type="button" class="pbtn" data-act="p2" data-f="${f.place}" data-k="${bk}" data-v="${pl.place}" aria-pressed="${sel === pl.place}" title="Finished ${ORD(pl.place)} in ${esc(b.pool)}-${esc(b.col)}">${ORD(pl.place)}</button><div class="r1">`;
         if (pl.leaf) { body += chips(pl.leaf) + '</div></li>'; continue; }
         body += `Rnd 1 game <code>${esc(pl.game)}</code> v ${hum(pl.opp)}`;
         const rk = bk + pl.place;
         for (const o of pl.outs) {
           const rsel = S.r1[rk];
           const oOff = !pOff && !bOff && !fOff && rsel && rsel !== o.res;
-          const btn = `<button type="button" class="rbtn" data-act="r1" data-k="${rk}" data-v="${o.res}" aria-pressed="${rsel === o.res}">${o.res === 'W' ? 'Win' : 'Lose'}</button>`;
+          const btn = `<button type="button" class="rbtn" data-act="r1" data-f="${f.place}" data-k="${rk}" data-v="${o.res}" aria-pressed="${rsel === o.res}">${o.res === 'W' ? 'Win' : 'Lose'}</button>`;
           let rest;
           if (o.leaf) rest = `<span class="then">→</span> ${chips(o.leaf)}`;
           else {
@@ -465,9 +473,11 @@ document.addEventListener('click', e => {
   const { act, k } = b.dataset; let v = b.dataset.v;
   if (act === 'p2') v = +v;
   if (S[act][k] === v) delete S[act][k]; else S[act][k] = v;
+  // remember which Phase One place a path-card choice belongs to (see assumedPlaces)
+  if (b.dataset.f) { const fk = act + '|' + k; if (S[act][k] === undefined) delete S.f[fk]; else S.f[fk] = +b.dataset.f; }
   save(); render();
 });
-const resetAll = () => { S = { pool: {}, p1: {}, p2: {}, r1: {} }; save(); render(); };
+const resetAll = () => { S = { pool: {}, p1: {}, p2: {}, r1: {}, f: {} }; save(); render(); };
 document.getElementById('reset').addEventListener('click', resetAll);
 document.getElementById('whatif').addEventListener('click', resetAll);
 
