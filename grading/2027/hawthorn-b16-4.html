@@ -174,13 +174,8 @@ const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','
 const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const fmtDate = iso => { const m = /^(\d{4})-(\d\d)-(\d\d)/.exec(iso || ''); if (!m) return ''; const d = new Date(+m[1], +m[2] - 1, +m[3]); return `${DOW[d.getDay()]} ${+m[3]} ${MON[+m[2] - 1]}`; };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-// club name only, but keep the team number when two teams in the pool are from one club
-const club = t => (t || '').replace(/\s+U\d+\s+(Boys|Girls)\s+\d+$/i, '');
-const short = t => {
-  const c = club(t), same = ((D.pool && D.pool.teams) || []).filter(x => club(x) === c).length;
-  const n = / (\d+)$/.exec(t || '');
-  return same > 1 && n ? `${c} ${n[1]}` : c;
-};
+// 'Bulleen U14 Boys 2' -> 'Bulleen 2': the team number says which of the club's teams it is
+const short = t => (t || '').trim().replace(/\s+U\d+\s+(Boys|Girls)\s+(\d+)$/i, ' $2');
 const hum = tok => {
   let m = /^(\d)([A-F]) P(\d+)$/.exec(tok); if (m) return `${ORD(+m[1])} of Pool ${m[3]}${m[2]}`;
   m = /^(\d)([A-D]) ([A-Z]{2})$/.exec(tok); if (m) return `${ORD(+m[1])} of ${m[3]}-${m[2]}`;
