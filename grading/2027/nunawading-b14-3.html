@@ -61,12 +61,14 @@ tr.me td:first-child { box-shadow: inset 3px 0 0 var(--accent) }
 .ghint { margin: 2px 0 0; font-size: 12.5px; color: var(--muted) }
 .game .who { min-width: 0 }
 .game .who b { font-weight: 600 }
+.game .tn { white-space: nowrap }
 .score { font-weight: 600; font-size: 13px }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--sunk) }
 .seg button { font: 500 12px/1 var(--body); color: var(--muted); background: transparent; border: 0; padding: 6px 9px; cursor: pointer; white-space: nowrap }
 .seg button + button { border-left: 1px solid var(--line) }
 /* narrow: an unplayed game's result buttons go under the teams, so two long names never clip */
-@media (max-width: 560px) { .game.todo { grid-template-columns: 64px minmax(0, 1fr) } .game.todo .seg { grid-column: 1 / -1; justify-self: end; max-width: 100% } }
+/* every game row has the same date column, played or not, so the team names line up (Huan, Nov 2026) */
+@media (max-width: 560px) { .game { grid-template-columns: 64px minmax(0, 1fr) auto } .game.todo { grid-template-columns: 64px minmax(0, 1fr) } .game.todo .seg { grid-column: 1 / -1; justify-self: end; max-width: 100% } }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--surface) }
 .seg button:hover:not([aria-pressed="true"]) { color: var(--ink) }
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
@@ -301,10 +303,12 @@ function render() {
   const gEl = document.getElementById('games');
   gEl.innerHTML = games.map((g, i) => {
     const when = `<span class="when">${fmtDate(g.date)}</span>`;
-    const name = t => t === me ? `<b>${esc(short(t))}</b>` : esc(short(t));
+    // a team name never breaks across lines ("Sherbrooke / 1"); the line breaks at "v" instead
+    const tn = (t, bold) => `<span class="tn">${bold ? `<b>${esc(short(t))}</b>` : esc(short(t))}</span>`;
+    const name = t => tn(t, t === me);
     if (isPlayed(g)) {
       const hw = g.hs > g.as;
-      return `<div class="game">${when}<span class="who">${hw ? '<b>' + esc(short(g.home)) + '</b>' : esc(short(g.home))} v ${!hw ? '<b>' + esc(short(g.away)) + '</b>' : esc(short(g.away))}</span><span class="score">${g.hs}-${g.as}</span></div>`;
+      return `<div class="game">${when}<span class="who">${tn(g.home, hw)} v ${tn(g.away, !hw)}</span><span class="score">${g.hs}-${g.as}</span></div>`;
     }
     const v = S.pool[i];
     return `<div class="game todo">${when}<span class="who">${name(g.home)} v ${name(g.away)}</span><span class="seg" role="group" aria-label="Who wins (what-if)">
