@@ -370,7 +370,9 @@ function render() {
   const pre = (txt) => `<small>${what ? 'With these what-ifs, ' + txt.charAt(0).toLowerCase() + txt.slice(1) : txt}</small>`;
   const pairs = [...new Set(liveLeaves.map(lf => lf.leagues.join('|')))];
   const onePair = liveLeaves.length && pairs.length === 1 && liveLeaves[0].leagues.length > 1;
-  document.getElementById('answer').innerHTML = !live.length ? '<small>No path is left with these results.</small>'
+  // no path can be left only when what-ifs contradict each other (e.g. a choice in a card for a place a pool
+  // what-if rules out), so say so (found by check_pages.py, Nov 2026)
+  document.getElementById('answer').innerHTML = !live.length ? `<small>${what ? 'With these what-ifs, no path is left: they rule each other out.' : 'No path is left.'}</small>`
     : onePair ? `${pre('One of')} <span class="range"><span class="chips ranked">${liveLeaves[0].leagues.map(chip).join('')}</span></span> <small>VJBL ranks the remaining teams to decide.</small>`
     : live.length === 1 ? `${pre('Goes to')} ${chip(live[0])}`
     : live.length === 2 ? `${pre('Still possible')} <span class="range">${chip(live[0])} <small>or</small> ${chip(live[1])}</span>`
