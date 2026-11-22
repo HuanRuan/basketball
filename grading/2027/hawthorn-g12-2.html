@@ -38,6 +38,8 @@ h2 { font-size: 24px }
 /* the answer, right under the question: the leagues still possible, as the map's own chips */
 .answer { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; margin: 14px 0 0; font: 700 22px/1 var(--display) }
 .answer small { font: 500 15px/1.3 var(--body); color: var(--muted) }
+/* "VJL4 to RDL" never splits: on a narrow screen the words go above it instead */
+.answer .range { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap }
 .answer .chip { font: 800 clamp(26px, 4.4vw, 36px)/1 var(--display); padding: 5px 11px 6px; border-radius: 6px; border-width: 1.5px }
 .lede { color: var(--muted); max-width: 70ch; margin: 10px 0 0 }
 code, .code { font: 600 .84em/1.3 var(--body); letter-spacing: .02em; background: var(--sunk); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; white-space: nowrap }
@@ -92,7 +94,10 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
 .own td:first-child { white-space: nowrap }
 .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap }
 .btn { font: 500 13px/1 var(--body); border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; padding: 8px 12px; cursor: pointer }
-.btn:hover { border-color: var(--accent) }
+.btn:hover:not(:disabled) { border-color: var(--accent) }
+/* "Reset to real results": filled ink while what-ifs are on, faded when there is nothing to reset */
+.btn.on { background: var(--ink); color: var(--surface); border-color: var(--ink) }
+.btn:disabled { opacity: .45; cursor: default }
 .pill { font-size: 12px; border-radius: 999px; padding: 2px 9px; border: 1px solid var(--ink); color: var(--ink); font-weight: 600 }
 .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start }
 @media (max-width: 900px) { .cards { grid-template-columns: minmax(0, 1fr); gap: 10px } }
@@ -133,10 +138,12 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
 .chips.ranked::after { content: "ranked"; font-size: 10.5px; color: var(--muted); margin-left: 2px }
 .off { opacity: .38; filter: grayscale(1) }
 .off .off { opacity: 1; filter: none }
-.legend { display: flex; gap: 8px 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); align-items: center }
-.legend b { color: var(--ink); font-weight: 600 }
+/* the sample dashed pair in the intro: outlined in ink, so it reads as an example, not a real league */
+.sample { vertical-align: 1px }
+.sample .chip { background: var(--surface); border: 1.5px dashed var(--ink); color: var(--ink) }
 footer { color: var(--muted); font-size: 12px; display: grid; gap: 4px; max-width: 90ch }
 footer a { color: var(--accent); text-underline-offset: 2px }
+footer .src { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line) }
 @media (prefers-reduced-motion: no-preference) { .card, .branch, .pl, .out, .fin, .lg { transition: opacity .2s, filter .2s } }
 </style>
 
@@ -154,7 +161,7 @@ footer a { color: var(--accent); text-underline-offset: 2px }
       <div class="games" id="games"></div>
     </div>
     <div class="panel">
-      <div class="sub"><h2>Where it can end up</h2><span class="pill" id="whatif" hidden>Showing what-ifs</span></div>
+      <div class="sub"><h2>Where it can end up</h2><button class="btn on" id="whatif" type="button" hidden>Reset to real results</button></div>
       <div class="finishes" id="finishes"></div>
       <div class="ladder" id="leagues"></div>
       <ul class="facts" id="facts"></ul>
@@ -163,13 +170,12 @@ footer a { color: var(--accent); text-underline-offset: 2px }
   </section>
 
   <section class="toolbar">
-    <h2 style="flex:1 0 auto">Every path, by finish</h2>
-    <div class="legend">
-      <span><span class="chips"><span class="chip" style="--lgc:var(--off)">League</span></span> <b>Certain:</b> goes to this league</span>
-      <span><span class="chips"><span class="chip" style="--lgc:var(--off);border-style:dashed">League</span><span class="chip" style="--lgc:var(--off);border-style:dashed">League</span></span> <b>Dashed pair:</b> one of these two; VJBL ranks the leftover teams to decide</span></div>
+    <h2 style="flex:1 0 auto">Every path</h2>
     <button class="btn" id="reset" type="button">Reset to real results</button>
   </section>
-  <p class="lede" style="margin:-8px 0 0">Tap a result (W / L, a place, or a pool game above) to see what's left if it happens. Tap it again to undo. Greyed paths are ruled out.</p>
+  <!-- the one thing worth a key: what a dashed pair means (Huan, Nov 2026: the legend row is gone) -->
+  <p class="lede" style="margin:-8px 0 0">Tap a result (W / L, a place, or a pool game above) to see what's left if it happens. Tap it again to undo. Greyed paths are ruled out.
+    A dashed pair such as <span class="chips ranked sample"><span class="chip">VJL5</span><span class="chip">VJL6</span></span> means one of the two: VJBL ranks the leftover teams to decide, and doesn't publish how.</p>
   <section class="cards" id="cards"></section>
 
   <footer id="foot"></footer>
@@ -285,7 +291,9 @@ const span = ls => !ls.length ? 'none' : ls.length === 1 ? ls[0] : `${ls[0]} to 
 function render() {
   const A = analyse();
   const what = Object.values(S).some(o => Object.keys(o).length);
+  // what-ifs on: a reset button by the answer panel too, and the main one filled; off: the main one faded
   document.getElementById('whatif').hidden = !what;
+  const rb = document.getElementById('reset'); rb.disabled = !what; rb.classList.toggle('on', what);
 
   // pool games
   const gEl = document.getElementById('games');
@@ -323,7 +331,7 @@ function render() {
   // the answer under the title: best to worst league still possible (with any what-ifs applied)
   document.getElementById('answer').innerHTML = !live.length ? '<small>No path is left with these results.</small>'
     : live.length === 1 ? `<small>${what ? 'With these what-ifs, goes to' : 'Goes to'}</small> ${chip(live[0])}`
-    : `<small>${what ? 'With these what-ifs, still possible' : 'Still possible'}</small> ${chip(live[0])} <small>to</small> ${chip(live[live.length - 1])}`;
+    : `<small>${what ? 'With these what-ifs, still possible' : 'Still possible'}</small> <span class="range">${chip(live[0])} <small>to</small> ${chip(live[live.length - 1])}</span>`;
   const facts = [];
   const closed = D.finishes.filter(f => finStatus(A, f.place) === 'closed').map(f => ORD(f.place));
   facts.push(closed.length ? `Ruled out: ${closed.join(', ')}.` : 'No finish is ruled out yet.');
@@ -429,7 +437,9 @@ document.addEventListener('click', e => {
   if (S[act][k] === v) delete S[act][k]; else S[act][k] = v;
   save(); render();
 });
-document.getElementById('reset').addEventListener('click', () => { S = { pool: {}, p1: {}, p2: {}, r1: {} }; save(); render(); });
+const resetAll = () => { S = { pool: {}, p1: {}, p2: {}, r1: {} }; save(); render(); };
+document.getElementById('reset').addEventListener('click', resetAll);
+document.getElementById('whatif').addEventListener('click', resetAll);
 
 // static text
 // the season sits in the title (was an all-caps label above it): "… in 2027 VJBL grading?"
@@ -445,12 +455,12 @@ document.getElementById('asof').innerHTML = (D.pool.fetched ? `Results as of ${f
 const lad = (D.pool.ladder && D.pool.ladder[0] && D.pool.ladder[0].standings) || [];
 document.getElementById('ladder').innerHTML = `<tr><th>#</th><th>Team</th><th class="n">P</th><th class="n">W</th><th class="n">L</th><th class="n">Pts</th><th class="n">%</th></tr>` +
   lad.map(s => `<tr class="${s.team === me ? 'me' : ''}"><td>${s.pos}</td><td>${esc(short(s.team))}</td><td class="n">${s.P}</td><td class="n">${s.W}</td><td class="n">${s.L}</td><td class="n">${s.PTS}</td><td class="n">${s.pct ?? ''}</td></tr>`).join('');
+// footer: the map's own caveats, then the source on its own line. The ladder rules (well known, and on
+// PlayHQ) and the dashed-pair note (now in the intro above the cards) are gone (Huan, Nov 2026)
 document.getElementById('foot').innerHTML = [
-  'Pool ladders rank by points (win 3, loss 1), then head-to-head, then percentage. A finish marked "only on percentage" needs a tie that margins would settle.',
-  'A dashed pair of leagues means the map sends the team to "best ranked remaining teams" of a group of games. VJBL does not publish how it ranks them.',
-  ...(D.caveats || []).map(esc),
-  `Source: ${D.teamUrl ? `<a href="${esc(D.teamUrl)}" target="_blank" rel="noopener">PlayHQ results</a>` : 'PlayHQ results'} and the ${D.mapUrl ? `<a href="${esc(D.mapUrl)}" target="_blank" rel="noopener">${esc(D.map || 'VJBL grading map')}</a>` : esc(D.map || 'VJBL grading map')}, published by Basketball Victoria.`,
-].map(t => `<div>${t}</div>`).join('');
+  ...(D.caveats || []).map(t => `<div>${esc(t)}</div>`),
+  `<div class="src">Source: ${D.teamUrl ? `<a href="${esc(D.teamUrl)}" target="_blank" rel="noopener">PlayHQ results</a>` : 'PlayHQ results'} and the ${D.mapUrl ? `<a href="${esc(D.mapUrl)}" target="_blank" rel="noopener">${esc(D.map || 'VJBL grading map')}</a>` : esc(D.map || 'VJBL grading map')}.</div>`,
+].join('');
 render();
 </script>
 
