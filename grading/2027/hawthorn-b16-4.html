@@ -58,7 +58,18 @@ tr.me td:first-child { box-shadow: inset 3px 0 0 var(--accent) }
 .games { display: grid; gap: 8px; margin-top: 14px }
 .game { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 10px; align-items: center }
 .game .when { color: var(--muted); font-size: 12px }
-.ghint { margin: 2px 0 0; font-size: 12.5px; color: var(--muted) }
+/* "Who wins?" inside each unplayed game's buttons, so they read as a question to answer */
+.seg .q { font: 600 12px/1 var(--body); color: var(--ink); padding: 6px 9px; border-right: 1px solid var(--line); white-space: nowrap; align-self: center }
+@media (max-width: 560px) { .seg .q { padding: 6px 7px } .game.todo .seg button { padding: 6px 7px } }
+@media (max-width: 360px) { .seg .q { display: none } }
+/* the what-if strip under the opening line */
+/* set apart from the white cards by an ink outline and a light grey tint, without adding a colour:
+   the league colours stay the only colour on the page (Huan, Nov 2026; a solid ink box was too heavy) */
+.wibar { display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap; margin: 16px 0 0; padding: 12px 16px;
+  background: color-mix(in srgb, var(--ink) 5%, var(--bg)); border: 1.5px solid var(--ink); border-radius: 10px; max-width: 760px }
+.wibar > b { font: 700 18px/1 var(--display) }   /* modest: the answer above stays the boldest thing */
+.wibar > span { flex: 1 1 260px }
+.wibar a { color: inherit; text-decoration-thickness: 1.5px; text-underline-offset: 3px; font-weight: 600 }
 .game .who { min-width: 0 }
 .game .who b { font-weight: 600 }
 .game .tn { white-space: nowrap }
@@ -98,7 +109,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
 .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap }
 .btn { font: 500 13px/1 var(--body); border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; padding: 8px 12px; cursor: pointer }
 .btn:hover:not(:disabled) { border-color: var(--accent) }
-/* "Reset to real results": filled ink while what-ifs are on, faded when there is nothing to reset */
+/* "Clear what-ifs": filled ink while what-ifs are on, faded when there is nothing to reset */
 .btn.on { background: var(--ink); color: var(--surface); border-color: var(--ink) }
 .btn:disabled { opacity: .45; cursor: default }
 .pill { font-size: 12px; border-radius: 999px; padding: 2px 9px; border: 1px solid var(--ink); color: var(--ink); font-weight: 600 }
@@ -154,7 +165,14 @@ footer .src { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--lin
   <header>
     <h1 id="title"></h1>
     <p class="answer" id="answer"></p>
-    <p class="lede" id="lede"></p>
+    <!-- one place that says what-ifs exist and where they are (Huan, Nov 2026: the two hints were
+         buried in separate paragraphs). It sits right under the answer it changes; the links scroll,
+         so they also work inside the WordPress embed -->
+    <div class="wibar">
+      <b>What if?</b>
+      <span>Choose who wins a <a href="#games" data-jump="games">game still to play</a>, or a ladder place or Win / Lose in <a href="#cards" data-jump="cards">every path</a>.</span>
+      <button class="btn on" id="whatif" type="button" hidden>Clear what-ifs</button>
+    </div>
   </header>
 
   <section class="band">
@@ -164,7 +182,7 @@ footer .src { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--lin
       <div class="games" id="games"></div>
     </div>
     <div class="panel">
-      <div class="sub"><h2>Where it can end up</h2><button class="btn on" id="whatif" type="button" hidden>Reset to real results</button></div>
+      <div class="sub"><h2>Where it can end up</h2></div>
       <div class="finishes" id="finishes"></div>
       <div class="ladder" id="leagues"></div>
       <ul class="facts" id="facts"></ul>
@@ -174,11 +192,11 @@ footer .src { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--lin
 
   <section class="toolbar">
     <h2 style="flex:1 0 auto">Every path</h2>
-    <button class="btn" id="reset" type="button">Reset to real results</button>
+    <button class="btn" id="reset" type="button">Clear what-ifs</button>
   </section>
   <!-- the one thing worth a key: what a dashed pair means (Huan, Nov 2026: the legend row is gone) -->
   <!-- the what-if buttons say Win / Lose (games still to come), as on every game below (Huan, Nov 2026) -->
-  <p class="lede" style="margin:-8px 0 0">To try a what-if, choose a ladder place, or Win or Lose for a crossover game. Choose it again to undo. Greyed paths are ruled out.
+  <p class="lede" style="margin:-8px 0 0">Greyed paths are ruled out.
     A dashed pair such as <span class="chips ranked sample"><span class="chip">VJL5</span><span class="chip">VJL6</span></span> means one of the two: VJBL ranks the remaining teams from those games to decide, and doesn't publish how.</p>
   <section class="cards" id="cards"></section>
 
@@ -311,12 +329,10 @@ function render() {
       return `<div class="game">${when}<span class="who">${tn(g.home, hw)} v ${tn(g.away, !hw)}</span><span class="score">${g.hs}-${g.as}</span></div>`;
     }
     const v = S.pool[i];
-    return `<div class="game todo">${when}<span class="who">${name(g.home)} v ${name(g.away)}</span><span class="seg" role="group" aria-label="Who wins (what-if)">
+    return `<div class="game todo">${when}<span class="who">${name(g.home)} v ${name(g.away)}</span><span class="seg" role="group" aria-label="Who wins (what-if)"><span class="q">Who wins?</span>
       <button type="button" data-act="pool" data-k="${i}" data-v="H" aria-pressed="${v === 'H'}">${esc(short(g.home))}</button>
       <button type="button" data-act="pool" data-k="${i}" data-v="A" aria-pressed="${v === 'A'}">${esc(short(g.away))}</button></span></div>`;
-  }).join('') +
-  // the hint for these buttons sits with them, not in the paths section further down (Huan, Nov 2026)
-  (games.some(g => !isPlayed(g)) ? '<p class="ghint">For a game still to play, choose who wins to see what it changes. Choose it again to undo.</p>' : '');
+  }).join('');   // each game still to play says "Who wins?" in its own buttons (Huan, Nov 2026)
 
   // finishes
   const label = { open: 'possible', pct: 'only on percentage', closed: 'ruled out' };
@@ -428,16 +444,22 @@ function card(A, f) {
       body += '</ol></div>';
     }
   }
-  // open: as the reader left it; else open on wide screens unless ruled out, closed on phones
-  const open = OPEN[f.place] ?? (!NARROW.matches && !fOff);
+  // open or closed is decided once, when the page first draws: open on wide screens unless ruled out,
+  // closed on phones. After that a card stays as it is on screen through what-ifs, Clear what-ifs and
+  // resizing; only the reader opens or closes it (Huan, Nov 2026: re-applying the width rule on every
+  // redraw opened all four cards whenever the window was wider at that moment)
+  const prev = document.querySelector(`details.card[data-card="${f.place}"]`);
+  const open = prev ? prev.open : (!NARROW.matches && !fOff);
   return `<details class="card${fOff ? ' off' : ''}" data-card="${f.place}"${open ? ' open' : ''}><summary><span class="big">${ORD(f.place)}</span>
     <div class="t"><b>in Pool ${esc(D.position)}</b><div>reaches ${span(f.leagues)}</div></div><span class="status ${st}">${stTxt}</span></summary>${body}</details>`;
 }
-const OPEN = {};
 const NARROW = matchMedia('(max-width: 900px)');
-document.addEventListener('toggle', e => { const c = e.target; if (c.dataset && c.dataset.card) OPEN[c.dataset.card] = c.open; }, true);
 
 document.addEventListener('click', e => {
+  // the What if? strip's links scroll to the pool games or the paths
+  const j = e.target.closest('a[data-jump]');
+  if (j) { e.preventDefault(); const t = document.getElementById(j.dataset.jump);
+    if (t) t.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); return; }
   const b = e.target.closest('button[data-act]');
   if (!b) return;
   const { act, k } = b.dataset; let v = b.dataset.v;
@@ -454,13 +476,9 @@ document.getElementById('whatif').addEventListener('click', resetAll);
 const YEAR = ((D.season || '').match(/\d{4}(\/\d{2,4})?/) || [''])[0];
 document.getElementById('title').textContent = `Where can ${D.name} finish in ${YEAR ? YEAR + ' ' : ''}VJBL grading?`;
 if (D.seasonDates) document.getElementById('title').title = `${D.season || 'Season'}: ${D.seasonDates}`;
-// one line under the answer: the stage, pool and seed band, and how a pool place becomes a grade
-// (Huan, Nov 2026: no repeat of the team name; "grade", not "league"; "ladder place", not "finish";
-// name the real steps: Phase One pool, crossover, Phase Two pool, crossover, grade)
-document.getElementById('lede').innerHTML = `Phase One, Pool ${esc(D.position)}` + (D.seeds ? ` (seeds ${esc(D.seeds).replace('-', '–')})` : '') +
-  `. Grading goes Phase One pool, crossover, Phase Two pool, crossover, and then the grade is set. ` +
-  `The team's ladder place in each pool decides its crossover game.`;
-document.getElementById('poolTitle').textContent = `Pool ${D.position}`;
+// no paragraph under the answer (Huan, Nov 2026): the stage goes in the pool heading, the seed band is
+// in "Where it can end up", and the path cards show the steps
+document.getElementById('poolTitle').textContent = `Phase One, Pool ${D.position}`;
 document.getElementById('asof').innerHTML = (D.pool.fetched ? `Results as of ${fmtDate(D.pool.fetched)}` : '') +
   (D.teamUrl ? ` · <a href="${esc(D.teamUrl)}" target="_blank" rel="noopener">PlayHQ</a>` : '');
 const lad = (D.pool.ladder && D.pool.ladder[0] && D.pool.ladder[0].standings) || [];
