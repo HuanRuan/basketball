@@ -53,16 +53,28 @@ table { border-collapse: collapse; width: 100% }
 th, td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line) }
 th { font: 600 12px/1.2 var(--body); color: var(--muted) }
 td.n, th.n { text-align: right }
+/* narrow: tighter cells, so a ladder with a D column still fits a 320px phone */
+@media (max-width: 400px) { #ladder th, #ladder td { padding: 5px 3px } }
 tr.me td { font-weight: 600 }
 tr.me td:first-child { box-shadow: inset 3px 0 0 var(--accent) }
-.games { display: grid; gap: 8px; margin-top: 14px }
-.game { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 10px; align-items: center }
-.game .when { color: var(--muted); font-size: 12px }
+/* every game row shares one grid (subgrid): date | teams | "Who wins?" | home | away. The boxes' label and
+   two buttons each get a shared column, so the boxes line up down the list (Huan, Nov 2026: they
+   zigzagged, each sized to its own names). A played game's names use the box columns, its score the last */
+.games { display: grid; grid-template-columns: 78px minmax(0, 1fr) auto auto auto auto; gap: 8px 10px; margin-top: 14px }
+.game { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; align-items: center; column-gap: 10px; position: relative }
+/* the team's own games carry the ladder's ink bar at the same left edge (Huan, Nov 2026: bold now means the
+   winner, so the row is marked, not the name); the dates sit in by the ladder's cell padding to clear it */
+.game.me::before { content: ""; position: absolute; left: 0; top: -2px; bottom: -2px; width: 3px; background: var(--accent) }
+.game .who { grid-column: 2 / 6 }
+.game .score { grid-column: 6; justify-self: end }
+.game.todo .who { grid-column: 2 }
+.game.todo .seg { display: grid; grid-column: 3 / 7; grid-template-columns: subgrid; column-gap: 0 }
+.game .when { color: var(--muted); font-size: 12px; padding-left: 6px }
 .tocome { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); text-wrap: pretty }
 /* "Who wins?" inside each unplayed game's buttons, so they read as a question to answer */
 .seg .q { font: 600 12px/1 var(--body); color: var(--ink); padding: 6px 9px; border-right: 1px solid var(--line); white-space: nowrap; align-self: center }
 @media (max-width: 560px) { .seg .q { padding: 6px 7px } .game.todo .seg button { padding: 6px 7px } }
-@media (max-width: 360px) { .seg .q { display: none } }
+@media (max-width: 360px) { .seg .q { display: none } .games .game.todo .seg { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) } }
 /* the what-if strip under the opening line */
 /* set apart from the white cards by an ink outline and a light grey tint, without adding a colour:
    the league colours stay the only colour on the page (Huan, Nov 2026; a solid ink box was too heavy) */
@@ -80,12 +92,26 @@ tr.me td:first-child { box-shadow: inset 3px 0 0 var(--accent) }
 .seg button + button { border-left: 1px solid var(--line) }
 /* narrow: an unplayed game's result buttons go under the teams, so two long names never clip */
 /* every game row has the same date column, played or not, so the team names line up (Huan, Nov 2026) */
-@media (max-width: 560px) { .game { grid-template-columns: 64px minmax(0, 1fr) auto } .game.todo { grid-template-columns: 64px minmax(0, 1fr) } .game.todo .seg { grid-column: 1 / -1; justify-self: end; max-width: 100% } }
+/* narrow: the boxes go on their own line, the full width of the row, so they still line up (under the
+   names only, two long names did not fit in equal halves) */
+@media (max-width: 560px) { .games { grid-template-columns: 70px minmax(0, 1fr) auto auto auto auto } .game.todo .who { grid-column: 2 / -1 }
+  .game.todo .seg { margin-left: 6px }
+  .game.todo .seg { grid-column: 1 / -1; grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) }
+  /* the two team buttons always split evenly, so the boxes line up; a long name wraps inside its button
+     ("Diamond / Valley 2") rather than being cut */
+  .game.todo .seg button { white-space: normal; line-height: 1.2; padding-left: 6px; padding-right: 6px } .seg .q { padding: 6px } }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--surface) }
 .seg button:hover:not([aria-pressed="true"]) { color: var(--ink) }
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
 .finishes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 6px }
-.fin { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--sunk) }
+/* each place box opens its path card below (Huan, Nov 2026). A button, but not outlined in ink like the
+   what-if buttons: choosing it shows the paths, it does not assume the place. The arrow says where it goes */
+.fin { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--sunk); position: relative;
+  font: inherit; color: inherit; text-align: left; width: 100%; cursor: pointer; display: block }
+.fin .go { position: absolute; top: 8px; right: 9px; font: 600 13px/1 var(--body); font-style: normal; color: var(--muted) }
+.fin:hover { border-color: var(--ink) }
+.fin:hover .go { color: var(--ink) }
+.fin:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
 .fin b { font: 700 24px/1 var(--display); display: block }
 .fin span { font-size: 12px; color: var(--muted) }
 .fin.open { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 10%, var(--surface)) }
@@ -107,6 +133,14 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
 .facts { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none }
 .own { margin-top: 12px }
 .own td:first-child { white-space: nowrap }
+.own caption { caption-side: bottom; text-align: left; font-size: 12px; color: var(--muted); padding-top: 6px }
+/* the grades as the map's chips, as everywhere else, on one line (Huan, Nov 2026: plain text, and on a phone
+   "VJL4 to VJL7" wrapped while the other rows did not) */
+.own td:last-child { white-space: nowrap }
+/* grade ranges as chips wherever they appear (Huan, Nov 2026: the table, the card headings and the seeding
+   line were plain text) */
+.own .range, .card > summary .range, .facts .range { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; white-space: nowrap }
+.card > summary .t .chip { font-size: 11px; padding: 2px 5px }
 .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap }
 .btn { font: 500 13px/1 var(--body); border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; padding: 8px 12px; cursor: pointer }
 .btn:hover:not(:disabled) { border-color: var(--accent) }
@@ -136,7 +170,24 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
 .branch:last-child { border-bottom: 0 }
 .branch h4 { font-size: 18px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap }
 .branch h4 .arrow { color: var(--muted) }
+.branch h4 + .matelist, .branch h4 + .mates { margin-top: 8px }
 .mates { font-size: 12px; color: var(--muted); margin: 2px 0 8px }
+/* who a placeholder could be: the teams that can still take that Phase One place, most likely first
+   (Huan, Nov 2026 idea). Likely names in ink, outside chances muted; "now 3rd" is today's ladder place */
+.cands { font-size: 12px; color: var(--muted); margin-top: 3px; text-wrap: pretty }
+.cands b { color: var(--ink); font-weight: 600 }
+/* PlayHQ links on candidate pools and teams: quiet dotted underlines, no colour of their own */
+a.phq { color: inherit; text-decoration: underline dotted; text-decoration-thickness: 1px; text-underline-offset: 2px }
+a.phq:hover { text-decoration-style: solid }
+.cands .nw { font-size: 10.5px; color: var(--muted); font-weight: 400; white-space: nowrap }
+/* with names: the same pattern as a Phase Two pool slot (small heading, names, placeholder under them) */
+.xover.named { align-items: flex-start }
+.xover .xo { flex: 1 1 240px; min-width: 0 }
+.xover .xo .mates { margin: 0 0 4px }
+.xover .xo .cands { margin-top: 0 }
+.matelist { list-style: none; margin: 2px 0 10px; padding: 0; display: grid; gap: 6px; font-size: 12.5px }
+.matelist .slot { color: var(--ink) }
+.matelist .cands { margin-top: 1px }
 .places { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px }
 .pl { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; align-items: start }
 .pl .pbtn { font: 700 16px/1 var(--display); border: 1px solid var(--line); background: var(--sunk); color: var(--ink); border-radius: 6px; padding: 6px 0; cursor: pointer; width: 44px }
@@ -162,6 +213,20 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
 footer { color: var(--muted); font-size: 12px; display: grid; gap: 4px; max-width: 90ch }
 footer a { color: var(--accent); text-underline-offset: 2px }
 footer .src { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line) }
+/* layout pass (Huan, Nov 2026; tried side by side as switches, these kept): */
+/* the likely next opponent under each ladder place */
+.fin .fopp small { color: var(--muted); font-size: 11px }
+.fin .fopp { display: block; font-style: normal; font-size: 12px; line-height: 1.3; color: var(--ink); margin-top: 6px }
+/* team names are the headline, the placeholder a small label under them */
+.cands { font-size: 14px; color: var(--ink) }
+.cands b { font-weight: 700 }
+.matelist { gap: 10px }
+.lbl { font-size: 11.5px; color: var(--muted); margin-top: 1px }
+.lbl .slot { color: var(--muted) }
+/* outside chances behind a small button */
+button.more { font: 500 11px/1 var(--body); color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 2px 7px; margin-left: 4px; cursor: pointer; vertical-align: 1px }
+button.more:hover { color: var(--ink); border-color: var(--ink) }
+/* (ink-outlined what-if buttons and a "Who wins?" crossover were tried and dropped: too much, Huan, Nov 2026) */
 @media (prefers-reduced-motion: no-preference) { .card, .branch, .pl, .out, .fin, .lg { transition: opacity .2s, filter .2s } }
 </style>
 
@@ -204,14 +269,14 @@ footer .src { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--lin
   <!-- the one thing worth a key: what a dashed pair means (Huan, Nov 2026: the legend row is gone) -->
   <!-- the what-if buttons say Win / Lose (games still to come), as on every game below (Huan, Nov 2026) -->
   <p class="lede" style="margin:-8px 0 0">Greyed paths are ruled out.
-    A dashed pair such as <span class="chips ranked sample"><span class="chip">VJL5</span><span class="chip">VJL6</span></span> means one of the two: VJBL ranks the remaining teams from those games to decide, and doesn't publish how.</p>
+    A dashed pair such as <span class="chips ranked sample"><span class="chip">VJL5</span><span class="chip">VJL6</span></span> means one of the two: VJBL ranks the remaining teams from those games to decide, and doesn't publish how.<span id="whoNote"></span></p>
   <section class="cards" id="cards"></section>
 
   <footer id="foot"></footer>
 </div>
 
 <script>
-const D = {"name":"Hawthorn B12.2","position":"2D","seeds":"25-40","map":"2027 VJBL Under 12 Boys grading map","mapUrl":"https://www.basketballvictoria.com.au/resources/competition-resources/vjbl","season":"2027 season","teamUrl":"https://www.playhq.com/basketball-victoria/org/hawthorn-magic-basketball-club/16bf6020/victorian-junior-basketball-league-2027/teams/hawthorn-u12-boys-2/3321403f","seasonDates":"20 Nov 2026 \u2013 17 Sep 2027","caveats":[],"leagues":[{"id":"VC","name":"Victorian Junior Championship League (VC)","size":20,"seeds":"1-20","color":"#F2D94E"},{"id":"VJL1","name":"Victorian Junior League 1","size":20,"seeds":"21-40","color":"#8FE3EE"},{"id":"VJL2","name":"Victorian Junior League 2","size":20,"seeds":"41-60","color":"#F59AC4"},{"id":"VJL3","name":"Victorian Junior League 3","size":20,"seeds":"61-80","color":"#8EE6A8"},{"id":"VJL4","name":"Victorian Junior League 4","size":20,"seeds":"81-100","color":"#C7A8F0"},{"id":"VJL5","name":"Victorian Junior League 5","size":30,"seeds":"101-130","color":"#F2A08F"},{"id":"VJL6","name":"Victorian Junior League 6","size":30,"seeds":"131-160","color":"#BDEB8F"},{"id":"RL","name":"Victorian Junior League - Regional League","size":null,"seeds":"rest","color":"#cccccc"}],"pool":{"team":"Hawthorn U12 Boys 2","grade":"12 Boys Grading 1 - Pool 2D","teams":["Hawthorn U12 Boys 2","Ringwood U12 Boys 1","Dandenong U12 Boys 2","Knox U12 Boys 2"],"games":[{"round":"Round 1","date":"2026-11-20","home":"Hawthorn U12 Boys 2","away":"Ringwood U12 Boys 1","status":"FINAL","hs":53,"as":39},{"round":"Round 1","date":"2026-11-20","home":"Dandenong U12 Boys 2","away":"Knox U12 Boys 2","status":"FINAL","hs":61,"as":38},{"round":"Round 2","date":"2026-11-27","home":"Knox U12 Boys 2","away":"Hawthorn U12 Boys 2","status":"UPCOMING","hs":null,"as":null},{"round":"Round 2","date":"2026-11-27","home":"Ringwood U12 Boys 1","away":"Dandenong U12 Boys 2","status":"UPCOMING","hs":null,"as":null},{"round":"Round 3","date":"2026-12-04","home":"Dandenong U12 Boys 2","away":"Hawthorn U12 Boys 2","status":"UPCOMING","hs":null,"as":null},{"round":"Round 3","date":"2026-12-04","home":"Knox U12 Boys 2","away":"Ringwood U12 Boys 1","status":"UPCOMING","hs":null,"as":null}],"ladder":[{"standings":[{"pos":1,"team":"Dandenong U12 Boys 2","P":1,"W":1,"L":0,"D":0,"PTS":3,"pct":160.53,"PF":61,"PA":38},{"pos":2,"team":"Hawthorn U12 Boys 2","P":1,"W":1,"L":0,"D":0,"PTS":3,"pct":135.9,"PF":53,"PA":39},{"pos":3,"team":"Ringwood U12 Boys 1","P":1,"W":0,"L":1,"D":0,"PTS":1,"pct":73.58,"PF":39,"PA":53},{"pos":4,"team":"Knox U12 Boys 2","P":1,"W":0,"L":1,"D":0,"PTS":1,"pct":62.3,"PF":38,"PA":61}]}],"fetched":"2026-11-22"},"finishes":[{"place":1,"tok":"1D P2","leagues":["VC","VJL1"],"kind":"direct","branches":[{"res":null,"pool":"AA","col":"D","mates":["L-D","4th P1 (best two, VJBL pick)","1D P2","W-G"],"matesText":["loser of D","4th P1 (best two, VJBL pick)","1st of Pool 2D","winner of G"],"places":[{"place":1,"tok":"1D AA","label":"1st AA-D","leaf":{"leagues":["VC"],"ranked":false,"how":"1D AA goes straight to VC"}},{"place":2,"tok":"2D AA","label":"2nd AA-D","game":"D","opp":"3C AA","oppText":"3rd of AA-C","outs":[{"res":"W","leaf":{"leagues":["VC"],"ranked":false,"how":"winners of A-D -> VC"}},{"res":"L","leaf":{"leagues":["VJL1"],"ranked":false,"how":"losers of A-D -> VJL1"}}]},{"place":3,"tok":"3D AA","label":"3rd AA-D","game":"C","opp":"2C AA","oppText":"2nd of AA-C","outs":[{"res":"W","leaf":{"leagues":["VC"],"ranked":false,"how":"winners of A-D -> VC"}},{"res":"L","leaf":{"leagues":["VJL1"],"ranked":false,"how":"losers of A-D -> VJL1"}}]},{"place":4,"tok":"4D AA","label":"4th AA-D","leaf":{"leagues":["VJL1"],"ranked":false,"how":"4D AA goes straight to VJL1"}}]}]},{"place":2,"tok":"2D P2","leagues":["VC","VJL1","VJL2","VJL3"],"kind":"game","game":"J","opp":"4th P1","oppText":"4th P1","branches":[{"res":"W","pool":"AA","col":"A","mates":["L-A","4th P1 (best two, VJBL pick)","1A P2","W-J"],"matesText":["loser of A","4th P1 (best two, VJBL pick)","1st of Pool 2A","winner of J"],"places":[{"place":1,"tok":"1A AA","label":"1st AA-A","leaf":{"leagues":["VC"],"ranked":false,"how":"1A AA goes straight to VC"}},{"place":2,"tok":"2A AA","label":"2nd AA-A","game":"A","opp":"3B AA","oppText":"3rd of AA-B","outs":[{"res":"W","leaf":{"leagues":["VC"],"ranked":false,"how":"winners of A-D -> VC"}},{"res":"L","leaf":{"leagues":["VJL1"],"ranked":false,"how":"losers of A-D -> VJL1"}}]},{"place":3,"tok":"3A AA","label":"3rd AA-A","game":"B","opp":"2B AA","oppText":"2nd of AA-B","outs":[{"res":"W","leaf":{"leagues":["VC"],"ranked":false,"how":"winners of A-D -> VC"}},{"res":"L","leaf":{"leagues":["VJL1"],"ranked":false,"how":"losers of A-D -> VJL1"}}]},{"place":4,"tok":"4A AA","label":"4th AA-A","leaf":{"leagues":["VJL1"],"ranked":false,"how":"4A AA goes straight to VJL1"}}]},{"res":"L","pool":"BB","col":"D","mates":["L-J","3B P2","1D P3","W-K"],"matesText":["loser of J","3rd of Pool 2B","1st of Pool 3D","winner of K"],"places":[{"place":1,"tok":"1D BB","label":"1st BB-D","leaf":{"leagues":["VJL1"],"ranked":false,"how":"1D BB goes straight to VJL1"}},{"place":2,"tok":"2D BB","label":"2nd BB-D","game":"L","opp":"1C CC","oppText":"1st of CC-C","outs":[{"res":"W","leaf":{"leagues":["VJL1"],"ranked":false,"how":"winners of I-L -> VJL1"}},{"res":"L","game":"FF","opp":"W-N","oppText":"winner of N","win":{"leagues":["VJL1"],"ranked":false,"how":"winners of CC-FF -> VJL1"},"lose":{"leagues":["VJL2"],"ranked":false,"how":"losers of CC-FF -> VJL2"}}]},{"place":3,"tok":"3D BB","label":"3rd BB-D","game":"P","opp":"2C CC","oppText":"2nd of CC-C","outs":[{"res":"W","game":"DD","opp":"L-J","oppText":"loser of J","win":{"leagues":["VJL1"],"ranked":false,"how":"winners of CC-FF -> VJL1"},"lose":{"leagues":["VJL2"],"ranked":false,"how":"losers of CC-FF -> VJL2"}},{"res":"L","leaf":{"leagues":["VJL2"],"ranked":false,"how":"losers of M-P -> VJL2"}}]},{"place":4,"tok":"4D BB","label":"4th BB-D","game":"S","opp":"3C CC","oppText":"3rd of CC-C","outs":[{"res":"W","leaf":{"leagues":["VJL2"],"ranked":false,"how":"winners of Q-T -> VJL2"}},{"res":"L","game":"II","opp":"W-V","oppText":"winner of V","win":{"leagues":["VJL2"],"ranked":false,"how":"winners of GG-JJ -> VJL2"},"lose":{"leagues":["VJL2","VJL3"],"ranked":true,"how":"best 4 of the rest of GG-NN -> VJL2, others -> VJL3"}}]}]}]},{"place":3,"tok":"3D P2","leagues":["VJL1","VJL2","VJL3"],"kind":"direct","branches":[{"res":null,"pool":"BB","col":"B","mates":["L-H","3D P2","1B P3","W-M"],"matesText":["loser of H","3rd of Pool 2D","1st of Pool 3B","winner of M"],"places":[{"place":1,"tok":"1B BB","label":"1st BB-B","leaf":{"leagues":["VJL1"],"ranked":false,"how":"1B BB goes straight to VJL1"}},{"place":2,"tok":"2B BB","label":"2nd BB-B","game":"J","opp":"1A CC","oppText":"1st of CC-A","outs":[{"res":"W","leaf":{"leagues":["VJL1"],"ranked":false,"how":"winners of I-L -> VJL1"}},{"res":"L","game":"DD","opp":"W-P","oppText":"winner of P","win":{"leagues":["VJL1"],"ranked":false,"how":"winners of CC-FF -> VJL1"},"lose":{"leagues":["VJL2"],"ranked":false,"how":"losers of CC-FF -> VJL2"}}]},{"place":3,"tok":"3B BB","label":"3rd BB-B","game":"N","opp":"2A CC","oppText":"2nd of CC-A","outs":[{"res":"W","game":"FF","opp":"L-L","oppText":"loser of L","win":{"leagues":["VJL1"],"ranked":false,"how":"winners of CC-FF -> VJL1"},"lose":{"leagues":["VJL2"],"ranked":false,"how":"losers of CC-FF -> VJL2"}},{"res":"L","leaf":{"leagues":["VJL2"],"ranked":false,"how":"losers of M-P -> VJL2"}}]},{"place":4,"tok":"4B BB","label":"4th BB-B","game":"Q","opp":"3A CC","oppText":"3rd of CC-A","outs":[{"res":"W","leaf":{"leagues":["VJL2"],"ranked":false,"how":"winners of Q-T -> VJL2"}},{"res":"L","game":"GG","opp":"W-X","oppText":"winner of X","win":{"leagues":["VJL2"],"ranked":false,"how":"winners of GG-JJ -> VJL2"},"lose":{"leagues":["VJL2","VJL3"],"ranked":true,"how":"best 4 of the rest of GG-NN -> VJL2, others -> VJL3"}}]}]}]},{"place":4,"tok":"4D P2","leagues":["VJL1","VJL2","VJL3"],"kind":"game","game":"N","opp":"2D P3","oppText":"2nd of Pool 3D","branches":[{"res":"W","pool":"BB","col":"A","mates":["L-G","3C P2","1A P3","W-N"],"matesText":["loser of G","3rd of Pool 2C","1st of Pool 3A","winner of N"],"places":[{"place":1,"tok":"1A BB","label":"1st BB-A","leaf":{"leagues":["VJL1"],"ranked":false,"how":"1A BB goes straight to VJL1"}},{"place":2,"tok":"2A BB","label":"2nd BB-A","game":"I","opp":"1B CC","oppText":"1st of CC-B","outs":[{"res":"W","leaf":{"leagues":["VJL1"],"ranked":false,"how":"winners of I-L -> VJL1"}},{"res":"L","game":"CC","opp":"W-O","oppText":"winner of O","win":{"leagues":["VJL1"],"ranked":false,"how":"winners of CC-FF -> VJL1"},"lose":{"leagues":["VJL2"],"ranked":false,"how":"losers of CC-FF -> VJL2"}}]},{"place":3,"tok":"3A BB","label":"3rd BB-A","game":"M","opp":"2B CC","oppText":"2nd of CC-B","outs":[{"res":"W","game":"EE","opp":"L-K","oppText":"loser of K","win":{"leagues":["VJL1"],"ranked":false,"how":"winners of CC-FF -> VJL1"},"lose":{"leagues":["VJL2"],"ranked":false,"how":"losers of CC-FF -> VJL2"}},{"res":"L","leaf":{"leagues":["VJL2"],"ranked":false,"how":"losers of M-P -> VJL2"}}]},{"place":4,"tok":"4A BB","label":"4th BB-A","game":"R","opp":"3B CC","oppText":"3rd of CC-B","outs":[{"res":"W","leaf":{"leagues":["VJL2"],"ranked":false,"how":"winners of Q-T -> VJL2"}},{"res":"L","game":"HH","opp":"W-W","oppText":"winner of W","win":{"leagues":["VJL2"],"ranked":false,"how":"winners of GG-JJ -> VJL2"},"lose":{"leagues":["VJL2","VJL3"],"ranked":true,"how":"best 4 of the rest of GG-NN -> VJL2, others -> VJL3"}}]}]},{"res":"L","pool":"CC","col":"D","mates":["L-N","1D P4","W-O","W-U"],"matesText":["loser of N","1st of Pool 4D","winner of O","winner of U"],"places":[{"place":1,"tok":"1D CC","label":"1st CC-D","game":"K","opp":"2C BB","oppText":"2nd of BB-C","outs":[{"res":"W","leaf":{"leagues":["VJL1"],"ranked":false,"how":"winners of I-L -> VJL1"}},{"res":"L","game":"EE","opp":"W-M","oppText":"winner of M","win":{"leagues":["VJL1"],"ranked":false,"how":"winners of CC-FF -> VJL1"},"lose":{"leagues":["VJL2"],"ranked":false,"how":"losers of CC-FF -> VJL2"}}]},{"place":2,"tok":"2D CC","label":"2nd CC-D","game":"O","opp":"3C BB","oppText":"3rd of BB-C","outs":[{"res":"W","game":"CC","opp":"L-I","oppText":"loser of I","win":{"leagues":["VJL1"],"ranked":false,"how":"winners of CC-FF -> VJL1"},"lose":{"leagues":["VJL2"],"ranked":false,"how":"losers of CC-FF -> VJL2"}},{"res":"L","leaf":{"leagues":["VJL2"],"ranked":false,"how":"losers of M-P -> VJL2"}}]},{"place":3,"tok":"3D CC","label":"3rd CC-D","game":"T","opp":"4C BB","oppText":"4th of BB-C","outs":[{"res":"W","leaf":{"leagues":["VJL2"],"ranked":false,"how":"winners of Q-T -> VJL2"}},{"res":"L","game":"JJ","opp":"W-U","oppText":"winner of U","win":{"leagues":["VJL2"],"ranked":false,"how":"winners of GG-JJ -> VJL2"},"lose":{"leagues":["VJL2","VJL3"],"ranked":true,"how":"best 4 of the rest of GG-NN -> VJL2, others -> VJL3"}}]},{"place":4,"tok":"4D CC","label":"4th CC-D","game":"X","opp":"1C DD","oppText":"1st of DD-C","outs":[{"res":"W","game":"GG","opp":"L-Q","oppText":"loser of Q","win":{"leagues":["VJL2"],"ranked":false,"how":"winners of GG-JJ -> VJL2"},"lose":{"leagues":["VJL2","VJL3"],"ranked":true,"how":"best 4 of the rest of GG-NN -> VJL2, others -> VJL3"}},{"res":"L","game":"NN","opp":"W-Y","oppText":"winner of Y","win":{"leagues":["VJL2","VJL3"],"ranked":true,"how":"best 4 of the rest of GG-NN -> VJL2, others -> VJL3"},"lose":{"leagues":["VJL2","VJL3"],"ranked":true,"how":"best 4 of the rest of GG-NN -> VJL2, others -> VJL3"}}]}]}]}]};
+const D = {"name":"Hawthorn B12.2","position":"2D","seeds":"25-40","map":"2027 VJBL Under 12 Boys grading map","mapUrl":"https://www.basketballvictoria.com.au/resources/competition-resources/vjbl","season":"2027 season","teamUrl":"https://www.playhq.com/basketball-victoria/org/hawthorn-magic-basketball-club/16bf6020/victorian-junior-basketball-league-2027/teams/hawthorn-u12-boys-2/3321403f","seasonDates":"20 Nov 2026 \u2013 17 Sep 2027","caveats":[],"leagues":[{"id":"VC","name":"Victorian Junior Championship League (VC)","size":20,"seeds":"1-20","color":"#F2D94E"},{"id":"VJL1","name":"Victorian Junior League 1","size":20,"seeds":"21-40","color":"#8FE3EE"},{"id":"VJL2","name":"Victorian Junior League 2","size":20,"seeds":"41-60","color":"#F59AC4"},{"id":"VJL3","name":"Victorian Junior League 3","size":20,"seeds":"61-80","color":"#8EE6A8"},{"id":"VJL4","name":"Victorian Junior League 4","size":20,"seeds":"81-100","color":"#C7A8F0"},{"id":"VJL5","name":"Victorian Junior League 5","size":30,"seeds":"101-130","color":"#F2A08F"},{"id":"VJL6","name":"Victorian Junior League 6","size":30,"seeds":"131-160","color":"#BDEB8F"},{"id":"RL","name":"Victorian Junior League - Regional League","size":null,"seeds":"rest","color":"#cccccc"}],"pool":{"team":"Hawthorn U12 Boys 2","grade":"12 Boys Grading 1 - Pool 2D","teams":["Hawthorn U12 Boys 2","Ringwood U12 Boys 1","Dandenong U12 Boys 2","Knox U12 Boys 2"],"games":[{"round":"Round 1","date":"2026-11-20","home":"Hawthorn U12 Boys 2","away":"Ringwood U12 Boys 1","status":"FINAL","hs":53,"as":39},{"round":"Round 1","date":"2026-11-20","home":"Dandenong U12 Boys 2","away":"Knox U12 Boys 2","status":"FINAL","hs":61,"as":38},{"round":"Round 2","date":"2026-11-27","home":"Knox U12 Boys 2","away":"Hawthorn U12 Boys 2","status":"UPCOMING","hs":null,"as":null},{"round":"Round 2","date":"2026-11-27","home":"Ringwood U12 Boys 1","away":"Dandenong U12 Boys 2","status":"UPCOMING","hs":null,"as":null},{"round":"Round 3","date":"2026-12-04","home":"Dandenong U12 Boys 2","away":"Hawthorn U12 Boys 2","status":"UPCOMING","hs":null,"as":null},{"round":"Round 3","date":"2026-12-04","home":"Knox U12 Boys 2","away":"Ringwood U12 Boys 1","status":"UPCOMING","hs":null,"as":null}],"ladder":[{"standings":[{"pos":1,"team":"Dandenong U12 Boys 2","P":1,"W":1,"L":0,"D":0,"PTS":3,"pct":160.53,"PF":61,"PA":38},{"pos":2,"team":"Hawthorn U12 Boys 2","P":1,"W":1,"L":0,"D":0,"PTS":3,"pct":135.9,"PF":53,"PA":39},{"pos":3,"team":"Ringwood U12 Boys 1","P":1,"W":0,"L":1,"D":0,"PTS":1,"pct":73.58,"PF":39,"PA":53},{"pos":4,"team":"Knox U12 Boys 2","P":1,"W":0,"L":1,"D":0,"PTS":1,"pct":62.3,"PF":38,"PA":61}]}],"fetched":"2026-11-22"},"finishes":[{"place":1,"tok":"1D P2","leagues":["VC","VJL1"],"kind":"direct","branches":[{"res":null,"pool":"AA","col":"D","mates":["L-D","4th P1 (best two, VJBL pick)","1D P2","W-G"],"matesText":["loser of D","4th P1 (best two, VJBL pick)","1st of Pool 2D","winner of G"],"places":[{"place":1,"tok":"1D AA","label":"1st AA-D","leaf":{"leagues":["VC"],"ranked":false,"how":"1D AA goes straight to VC"}},{"place":2,"tok":"2D AA","label":"2nd AA-D","game":"D","opp":"3C AA","oppText":"3rd of AA-C","outs":[{"res":"W","leaf":{"leagues":["VC"],"ranked":false,"how":"winners of A-D -> VC"}},{"res":"L","leaf":{"leagues":["VJL1"],"ranked":false,"how":"losers of A-D -> VJL1"}}]},{"place":3,"tok":"3D AA","label":"3rd AA-D","game":"C","opp":"2C AA","oppText":"2nd of AA-C","outs":[{"res":"W","leaf":{"leagues":["VC"],"ranked":false,"how":"winners of A-D -> VC"}},{"res":"L","leaf":{"leagues":["VJL1"],"ranked":false,"how":"losers of A-D -> VJL1"}}]},{"place":4,"tok":"4D AA","label":"4th AA-D","leaf":{"leagues":["VJL1"],"ranked":false,"how":"4D AA goes straight to VJL1"}}]}]},{"place":2,"tok":"2D P2","leagues":["VC","VJL1","VJL2","VJL3"],"kind":"game","game":"J","opp":"4th P1","oppText":"4th P1","branches":[{"res":"W","pool":"AA","col":"A","mates":["L-A","4th P1 (best two, VJBL pick)","1A P2","W-J"],"matesText":["loser of A","4th P1 (best two, VJBL pick)","1st of Pool 2A","winner of J"],"places":[{"place":1,"tok":"1A AA","label":"1st AA-A","leaf":{"leagues":["VC"],"ranked":false,"how":"1A AA goes straight to VC"}},{"place":2,"tok":"2A AA","label":"2nd AA-A","game":"A","opp":"3B AA","oppText":"3rd of AA-B","outs":[{"res":"W","leaf":{"leagues":["VC"],"ranked":false,"how":"winners of A-D -> VC"}},{"res":"L","leaf":{"leagues":["VJL1"],"ranked":false,"how":"losers of A-D -> VJL1"}}]},{"place":3,"tok":"3A AA","label":"3rd AA-A","game":"B","opp":"2B AA","oppText":"2nd of AA-B","outs":[{"res":"W","leaf":{"leagues":["VC"],"ranked":false,"how":"winners of A-D -> VC"}},{"res":"L","leaf":{"leagues":["VJL1"],"ranked":false,"how":"losers of A-D -> VJL1"}}]},{"place":4,"tok":"4A AA","label":"4th AA-A","leaf":{"leagues":["VJL1"],"ranked":false,"how":"4A AA goes straight to VJL1"}}]},{"res":"L","pool":"BB","col":"D","mates":["L-J","3B P2","1D P3","W-K"],"matesText":["loser of J","3rd of Pool 2B","1st of Pool 3D","winner of K"],"places":[{"place":1,"tok":"1D BB","label":"1st BB-D","leaf":{"leagues":["VJL1"],"ranked":false,"how":"1D BB goes straight to VJL1"}},{"place":2,"tok":"2D BB","label":"2nd BB-D","game":"L","opp":"1C CC","oppText":"1st of CC-C","outs":[{"res":"W","leaf":{"leagues":["VJL1"],"ranked":false,"how":"winners of I-L -> VJL1"}},{"res":"L","game":"FF","opp":"W-N","oppText":"winner of N","win":{"leagues":["VJL1"],"ranked":false,"how":"winners of CC-FF -> VJL1"},"lose":{"leagues":["VJL2"],"ranked":false,"how":"losers of CC-FF -> VJL2"}}]},{"place":3,"tok":"3D BB","label":"3rd BB-D","game":"P","opp":"2C CC","oppText":"2nd of CC-C","outs":[{"res":"W","game":"DD","opp":"L-J","oppText":"loser of J","win":{"leagues":["VJL1"],"ranked":false,"how":"winners of CC-FF -> VJL1"},"lose":{"leagues":["VJL2"],"ranked":false,"how":"losers of CC-FF -> VJL2"}},{"res":"L","leaf":{"leagues":["VJL2"],"ranked":false,"how":"losers of M-P -> VJL2"}}]},{"place":4,"tok":"4D BB","label":"4th BB-D","game":"S","opp":"3C CC","oppText":"3rd of CC-C","outs":[{"res":"W","leaf":{"leagues":["VJL2"],"ranked":false,"how":"winners of Q-T -> VJL2"}},{"res":"L","game":"II","opp":"W-V","oppText":"winner of V","win":{"leagues":["VJL2"],"ranked":false,"how":"winners of GG-JJ -> VJL2"},"lose":{"leagues":["VJL2","VJL3"],"ranked":true,"how":"best 4 of the rest of GG-NN -> VJL2, others -> VJL3"}}]}]}]},{"place":3,"tok":"3D P2","leagues":["VJL1","VJL2","VJL3"],"kind":"direct","branches":[{"res":null,"pool":"BB","col":"B","mates":["L-H","3D P2","1B P3","W-M"],"matesText":["loser of H","3rd of Pool 2D","1st of Pool 3B","winner of M"],"places":[{"place":1,"tok":"1B BB","label":"1st BB-B","leaf":{"leagues":["VJL1"],"ranked":false,"how":"1B BB goes straight to VJL1"}},{"place":2,"tok":"2B BB","label":"2nd BB-B","game":"J","opp":"1A CC","oppText":"1st of CC-A","outs":[{"res":"W","leaf":{"leagues":["VJL1"],"ranked":false,"how":"winners of I-L -> VJL1"}},{"res":"L","game":"DD","opp":"W-P","oppText":"winner of P","win":{"leagues":["VJL1"],"ranked":false,"how":"winners of CC-FF -> VJL1"},"lose":{"leagues":["VJL2"],"ranked":false,"how":"losers of CC-FF -> VJL2"}}]},{"place":3,"tok":"3B BB","label":"3rd BB-B","game":"N","opp":"2A CC","oppText":"2nd of CC-A","outs":[{"res":"W","game":"FF","opp":"L-L","oppText":"loser of L","win":{"leagues":["VJL1"],"ranked":false,"how":"winners of CC-FF -> VJL1"},"lose":{"leagues":["VJL2"],"ranked":false,"how":"losers of CC-FF -> VJL2"}},{"res":"L","leaf":{"leagues":["VJL2"],"ranked":false,"how":"losers of M-P -> VJL2"}}]},{"place":4,"tok":"4B BB","label":"4th BB-B","game":"Q","opp":"3A CC","oppText":"3rd of CC-A","outs":[{"res":"W","leaf":{"leagues":["VJL2"],"ranked":false,"how":"winners of Q-T -> VJL2"}},{"res":"L","game":"GG","opp":"W-X","oppText":"winner of X","win":{"leagues":["VJL2"],"ranked":false,"how":"winners of GG-JJ -> VJL2"},"lose":{"leagues":["VJL2","VJL3"],"ranked":true,"how":"best 4 of the rest of GG-NN -> VJL2, others -> VJL3"}}]}]}]},{"place":4,"tok":"4D P2","leagues":["VJL1","VJL2","VJL3"],"kind":"game","game":"N","opp":"2D P3","oppText":"2nd of Pool 3D","branches":[{"res":"W","pool":"BB","col":"A","mates":["L-G","3C P2","1A P3","W-N"],"matesText":["loser of G","3rd of Pool 2C","1st of Pool 3A","winner of N"],"places":[{"place":1,"tok":"1A BB","label":"1st BB-A","leaf":{"leagues":["VJL1"],"ranked":false,"how":"1A BB goes straight to VJL1"}},{"place":2,"tok":"2A BB","label":"2nd BB-A","game":"I","opp":"1B CC","oppText":"1st of CC-B","outs":[{"res":"W","leaf":{"leagues":["VJL1"],"ranked":false,"how":"winners of I-L -> VJL1"}},{"res":"L","game":"CC","opp":"W-O","oppText":"winner of O","win":{"leagues":["VJL1"],"ranked":false,"how":"winners of CC-FF -> VJL1"},"lose":{"leagues":["VJL2"],"ranked":false,"how":"losers of CC-FF -> VJL2"}}]},{"place":3,"tok":"3A BB","label":"3rd BB-A","game":"M","opp":"2B CC","oppText":"2nd of CC-B","outs":[{"res":"W","game":"EE","opp":"L-K","oppText":"loser of K","win":{"leagues":["VJL1"],"ranked":false,"how":"winners of CC-FF -> VJL1"},"lose":{"leagues":["VJL2"],"ranked":false,"how":"losers of CC-FF -> VJL2"}},{"res":"L","leaf":{"leagues":["VJL2"],"ranked":false,"how":"losers of M-P -> VJL2"}}]},{"place":4,"tok":"4A BB","label":"4th BB-A","game":"R","opp":"3B CC","oppText":"3rd of CC-B","outs":[{"res":"W","leaf":{"leagues":["VJL2"],"ranked":false,"how":"winners of Q-T -> VJL2"}},{"res":"L","game":"HH","opp":"W-W","oppText":"winner of W","win":{"leagues":["VJL2"],"ranked":false,"how":"winners of GG-JJ -> VJL2"},"lose":{"leagues":["VJL2","VJL3"],"ranked":true,"how":"best 4 of the rest of GG-NN -> VJL2, others -> VJL3"}}]}]},{"res":"L","pool":"CC","col":"D","mates":["L-N","1D P4","W-O","W-U"],"matesText":["loser of N","1st of Pool 4D","winner of O","winner of U"],"places":[{"place":1,"tok":"1D CC","label":"1st CC-D","game":"K","opp":"2C BB","oppText":"2nd of BB-C","outs":[{"res":"W","leaf":{"leagues":["VJL1"],"ranked":false,"how":"winners of I-L -> VJL1"}},{"res":"L","game":"EE","opp":"W-M","oppText":"winner of M","win":{"leagues":["VJL1"],"ranked":false,"how":"winners of CC-FF -> VJL1"},"lose":{"leagues":["VJL2"],"ranked":false,"how":"losers of CC-FF -> VJL2"}}]},{"place":2,"tok":"2D CC","label":"2nd CC-D","game":"O","opp":"3C BB","oppText":"3rd of BB-C","outs":[{"res":"W","game":"CC","opp":"L-I","oppText":"loser of I","win":{"leagues":["VJL1"],"ranked":false,"how":"winners of CC-FF -> VJL1"},"lose":{"leagues":["VJL2"],"ranked":false,"how":"losers of CC-FF -> VJL2"}},{"res":"L","leaf":{"leagues":["VJL2"],"ranked":false,"how":"losers of M-P -> VJL2"}}]},{"place":3,"tok":"3D CC","label":"3rd CC-D","game":"T","opp":"4C BB","oppText":"4th of BB-C","outs":[{"res":"W","leaf":{"leagues":["VJL2"],"ranked":false,"how":"winners of Q-T -> VJL2"}},{"res":"L","game":"JJ","opp":"W-U","oppText":"winner of U","win":{"leagues":["VJL2"],"ranked":false,"how":"winners of GG-JJ -> VJL2"},"lose":{"leagues":["VJL2","VJL3"],"ranked":true,"how":"best 4 of the rest of GG-NN -> VJL2, others -> VJL3"}}]},{"place":4,"tok":"4D CC","label":"4th CC-D","game":"X","opp":"1C DD","oppText":"1st of DD-C","outs":[{"res":"W","game":"GG","opp":"L-Q","oppText":"loser of Q","win":{"leagues":["VJL2"],"ranked":false,"how":"winners of GG-JJ -> VJL2"},"lose":{"leagues":["VJL2","VJL3"],"ranked":true,"how":"best 4 of the rest of GG-NN -> VJL2, others -> VJL3"}},{"res":"L","game":"NN","opp":"W-Y","oppText":"winner of Y","win":{"leagues":["VJL2","VJL3"],"ranked":true,"how":"best 4 of the rest of GG-NN -> VJL2, others -> VJL3"},"lose":{"leagues":["VJL2","VJL3"],"ranked":true,"how":"best 4 of the rest of GG-NN -> VJL2, others -> VJL3"}}]}]}]}],"phq":{"grade":"https://www.playhq.com/basketball-victoria/org/victorian-junior-basketball-league-vjbl/victorian-junior-basketball-league-2027/","team":"https://www.playhq.com/basketball-victoria/org/victorian-junior-basketball-league-vjbl/08f42de2/victorian-junior-basketball-league-2027/teams/"},"who":{"1A P2":{"c":[{"t":"Frankston U12 Boys 2","s":0.417,"now":1,"i":"b7c33c98"},{"t":"Melton U12 Boys 1","s":0.417,"now":2,"i":"c94bffbe"},{"t":"Sandringham U12 Boys 2","s":0.083,"now":3,"i":"2154c759"},{"t":"Nunawading U12 Boys 2","s":0.083,"now":4,"i":"f57d620b"}],"g":"e5d68a5b","gn":"12 Boys Grading 1 - Pool 2A","played":2,"games":6},"1A P3":{"c":[{"t":"Darebin U12 Boys 1","s":0.417,"now":1,"i":"822c1dcb"},{"t":"Camberwell U12 Boys 2","s":0.417,"now":2,"i":"34bc1f4f"},{"t":"Kilsyth U12 Boys 3","s":0.083,"now":3,"i":"ee0059cd"},{"t":"Frankston U12 Boys 3","s":0.083,"now":4,"i":"78392768"}],"g":"ff97a838","gn":"12 Boys Grading 1 - Pool 3A","played":2,"games":6},"1B P3":{"c":[{"t":"Altona U12 Boys 2","s":0.417,"now":1,"i":"40dcced9"},{"t":"Whittlesea U12 Boys 1","s":0.417,"now":2,"i":"c401576c"},{"t":"Dandenong U12 Boys 3","s":0.083,"now":3,"i":"857a7cf7"},{"t":"Bacchus Marsh U12 Boys 1","s":0.083,"now":4,"i":"aee68f7e"}],"g":"23dde40a","gn":"12 Boys Grading 1 - Pool 3B","played":2,"games":6},"1C P5":{"c":[{"t":"Keilor U12 Boys 3","s":0.417,"now":1,"i":"e4c98d64"},{"t":"Camberwell U12 Boys 3","s":0.417,"now":2,"i":"54c6f9c4"},{"t":"Eltham U12 Boys 3","s":0.083,"now":3,"i":"1f0ee333"},{"t":"Wallan U12 Boys 1","s":0.083,"now":4,"i":"8eb99384"}],"g":"ecc66b2a","gn":"12 Boys Grading 1 - Pool 5C","played":2,"games":6},"1D P2":{"c":[{"t":"Dandenong U12 Boys 2","s":0.417,"now":1,"i":"a752dd84"},{"t":"Ringwood U12 Boys 1","s":0.083,"now":3,"i":"67bad1b1"},{"t":"Knox U12 Boys 2","s":0.083,"now":4,"i":"72d2971f"}],"g":"76b6cc84","gn":"12 Boys Grading 1 - Pool 2D","played":2,"games":6},"1D P3":{"c":[{"t":"Eltham U12 Boys 2","s":0.417,"now":1,"i":"bf3847a1"},{"t":"Casey U12 Boys 3","s":0.417,"now":2,"i":"a6f2a108"},{"t":"Coburg U12 Boys 1","s":0.083,"now":3,"i":"09d297b4"},{"t":"Nunawading U12 Boys 3","s":0.083,"now":4,"i":"9cd9aa13"}],"g":"a5d97a29","gn":"12 Boys Grading 1 - Pool 3D","played":2,"games":6},"1D P4":{"c":[{"t":"Western Port U12 Boys 1","s":0.417,"now":1,"i":"464523e8"},{"t":"Broadmeadows U12 Boys 2","s":0.417,"now":2,"i":"b7fa50cc"},{"t":"Dandenong U12 Boys 4","s":0.083,"now":3,"i":"6382e241"},{"t":"Sandringham U12 Boys 4","s":0.083,"now":4,"i":"98f046ba"}],"g":"da8ad4d7","gn":"12 Boys Grading 1 - Pool 4D","played":2,"games":6},"2A P1":{"c":[{"t":"Keilor U12 Boys 1","s":0.312,"now":2,"i":"f20caa67"},{"t":"Camberwell U12 Boys 1","s":0.312,"now":1,"i":"826f7a9c"},{"t":"Nunawading U12 Boys 1","s":0.188,"now":3,"i":"fcc9fd30"},{"t":"Dandenong U12 Boys 1","s":0.188,"now":4,"i":"145befba"}],"g":"7f2d1102","gn":"12 Boys Grading 1 - Pool 1A","played":2,"games":6},"2A P2":{"c":[{"t":"Melton U12 Boys 1","s":0.312,"now":2,"i":"c94bffbe"},{"t":"Frankston U12 Boys 2","s":0.312,"now":1,"i":"b7c33c98"},{"t":"Sandringham U12 Boys 2","s":0.188,"now":3,"i":"2154c759"},{"t":"Nunawading U12 Boys 2","s":0.188,"now":4,"i":"f57d620b"}],"g":"e5d68a5b","gn":"12 Boys Grading 1 - Pool 2A","played":2,"games":6},"2A P3":{"c":[{"t":"Camberwell U12 Boys 2","s":0.312,"now":2,"i":"34bc1f4f"},{"t":"Darebin U12 Boys 1","s":0.312,"now":1,"i":"822c1dcb"},{"t":"Kilsyth U12 Boys 3","s":0.188,"now":3,"i":"ee0059cd"},{"t":"Frankston U12 Boys 3","s":0.188,"now":4,"i":"78392768"}],"g":"ff97a838","gn":"12 Boys Grading 1 - Pool 3A","played":2,"games":6},"2A P4":{"c":[{"t":"Gippsland United U12 Boys 2","s":0.312,"now":2,"i":"5bf9548f"},{"t":"Diamond Valley U12 Boys 4","s":0.312,"now":1,"i":"d4f832e8"},{"t":"Collingwood U12 Boys 1","s":0.188,"now":3,"i":"f85dbef3"},{"t":"Bulleen U12 Boys 3","s":0.188,"now":4,"i":"aaf19f7b"}],"g":"246e8951","gn":"12 Boys Grading 1 - Pool 4A","played":2,"games":6},"2B P2":{"c":[{"t":"Mornington U12 Boys 1","s":0.312,"now":2,"i":"442f55af"},{"t":"Sunbury U12 Boys 1","s":0.312,"now":1,"i":"e88349ee"},{"t":"Casey U12 Boys 2","s":0.188,"now":3,"i":"b8f161bd"},{"t":"Diamond Valley U12 Boys 2","s":0.188,"now":4,"i":"480cc9d5"}],"g":"0dda783c","gn":"12 Boys Grading 1 - Pool 2B","played":2,"games":6},"2C P3":{"c":[{"t":"Keilor U12 Boys 2","s":0.312,"now":2,"i":"f5ab2519"},{"t":"Melbourne U12 Boys 2","s":0.312,"now":1,"i":"426a2898"},{"t":"Bulleen U12 Boys 2","s":0.188,"now":3,"i":"fd85e61c"},{"t":"Sandringham U12 Boys 3","s":0.188,"now":4,"i":"26060216"}],"g":"23b365c4","gn":"12 Boys Grading 1 - Pool 3C","played":2,"games":6},"2D P1":{"c":[{"t":"Hawthorn U12 Boys 1","s":0.312,"now":2,"i":"e2e3d614"},{"t":"Broadmeadows U12 Boys 1","s":0.312,"now":1,"i":"dd4b8c48"},{"t":"Kilsyth U12 Boys 2","s":0.188,"now":3,"i":"0c8d1062"},{"t":"McKinnon U12 Boys 1","s":0.188,"now":4,"i":"b58c8f24"}],"g":"77122fb1","gn":"12 Boys Grading 1 - Pool 1D","played":2,"games":6},"2D P2":{"c":[{"t":"Dandenong U12 Boys 2","s":0.312,"now":1,"i":"a752dd84"},{"t":"Ringwood U12 Boys 1","s":0.188,"now":3,"i":"67bad1b1"},{"t":"Knox U12 Boys 2","s":0.188,"now":4,"i":"72d2971f"}],"g":"76b6cc84","gn":"12 Boys Grading 1 - Pool 2D","played":2,"games":6},"2D P3":{"c":[{"t":"Casey U12 Boys 3","s":0.312,"now":2,"i":"a6f2a108"},{"t":"Eltham U12 Boys 2","s":0.312,"now":1,"i":"bf3847a1"},{"t":"Coburg U12 Boys 1","s":0.188,"now":3,"i":"09d297b4"},{"t":"Nunawading U12 Boys 3","s":0.188,"now":4,"i":"9cd9aa13"}],"g":"a5d97a29","gn":"12 Boys Grading 1 - Pool 3D","played":2,"games":6},"3B P1":{"c":[{"t":"Gippsland United U12 Boys 1","s":0.312,"now":3,"i":"3b7978be"},{"t":"Craigieburn U12 Boys 1","s":0.312,"now":4,"i":"62f2a022"},{"t":"Kilsyth U12 Boys 1","s":0.188,"now":2,"i":"d72ad8ac"},{"t":"Geelong United U12 Boys 1","s":0.188,"now":1,"i":"e399d04c"}],"g":"0a4b9723","gn":"12 Boys Grading 1 - Pool 1B","played":2,"games":6},"3B P2":{"c":[{"t":"Casey U12 Boys 2","s":0.312,"now":3,"i":"b8f161bd"},{"t":"Diamond Valley U12 Boys 2","s":0.312,"now":4,"i":"480cc9d5"},{"t":"Mornington U12 Boys 1","s":0.188,"now":2,"i":"442f55af"},{"t":"Sunbury U12 Boys 1","s":0.188,"now":1,"i":"e88349ee"}],"g":"0dda783c","gn":"12 Boys Grading 1 - Pool 2B","played":2,"games":6},"3C P2":{"c":[{"t":"Westgate U12 Boys 1","s":0.312,"now":3,"i":"37637d58"},{"t":"McKinnon U12 Boys 2","s":0.312,"now":4,"i":"9b52784b"},{"t":"Surfcoast U12 Boys 1","s":0.188,"now":2,"i":"a3b7bb06"},{"t":"Southern Peninsula U12 Boys 1","s":0.188,"now":1,"i":"b1332ba6"}],"g":"e17328bd","gn":"12 Boys Grading 1 - Pool 2C","played":2,"games":6},"3C P3":{"c":[{"t":"Bulleen U12 Boys 2","s":0.312,"now":3,"i":"fd85e61c"},{"t":"Sandringham U12 Boys 3","s":0.312,"now":4,"i":"26060216"},{"t":"Keilor U12 Boys 2","s":0.188,"now":2,"i":"f5ab2519"},{"t":"Melbourne U12 Boys 2","s":0.188,"now":1,"i":"426a2898"}],"g":"23b365c4","gn":"12 Boys Grading 1 - Pool 3C","played":2,"games":6},"3D P2":{"c":[{"t":"Ringwood U12 Boys 1","s":0.312,"now":3,"i":"67bad1b1"},{"t":"Knox U12 Boys 2","s":0.312,"now":4,"i":"72d2971f"},{"t":"Dandenong U12 Boys 2","s":0.188,"now":1,"i":"a752dd84"}],"g":"76b6cc84","gn":"12 Boys Grading 1 - Pool 2D","played":2,"games":6},"3E P1":{"c":[{"t":"Waverley U12 Boys 1","s":0.312,"now":3,"i":"7273d447"},{"t":"Altona U12 Boys 1","s":0.312,"now":4,"i":"27cb4c1c"},{"t":"Sandringham U12 Boys 1","s":0.188,"now":2,"i":"5fb86156"},{"t":"Melbourne U12 Boys 1","s":0.188,"now":1,"i":"41f1501b"}],"g":"851e54d5","gn":"12 Boys Grading 1 - Pool 1E","played":2,"games":6},"4A P2":{"c":[{"t":"Nunawading U12 Boys 2","s":0.417,"now":4,"i":"f57d620b"},{"t":"Sandringham U12 Boys 2","s":0.417,"now":3,"i":"2154c759"},{"t":"Melton U12 Boys 1","s":0.083,"now":2,"i":"c94bffbe"},{"t":"Frankston U12 Boys 2","s":0.083,"now":1,"i":"b7c33c98"}],"g":"e5d68a5b","gn":"12 Boys Grading 1 - Pool 2A","played":2,"games":6},"4A P3":{"c":[{"t":"Frankston U12 Boys 3","s":0.417,"now":4,"i":"78392768"},{"t":"Kilsyth U12 Boys 3","s":0.417,"now":3,"i":"ee0059cd"},{"t":"Camberwell U12 Boys 2","s":0.083,"now":2,"i":"34bc1f4f"},{"t":"Darebin U12 Boys 1","s":0.083,"now":1,"i":"822c1dcb"}],"g":"ff97a838","gn":"12 Boys Grading 1 - Pool 3A","played":2,"games":6},"4C P2":{"c":[{"t":"McKinnon U12 Boys 2","s":0.417,"now":4,"i":"9b52784b"},{"t":"Westgate U12 Boys 1","s":0.417,"now":3,"i":"37637d58"},{"t":"Surfcoast U12 Boys 1","s":0.083,"now":2,"i":"a3b7bb06"},{"t":"Southern Peninsula U12 Boys 1","s":0.083,"now":1,"i":"b1332ba6"}],"g":"e17328bd","gn":"12 Boys Grading 1 - Pool 2C","played":2,"games":6},"4D P2":{"c":[{"t":"Knox U12 Boys 2","s":0.417,"now":4,"i":"72d2971f"},{"t":"Ringwood U12 Boys 1","s":0.417,"now":3,"i":"67bad1b1"},{"t":"Dandenong U12 Boys 2","s":0.083,"now":1,"i":"a752dd84"}],"g":"76b6cc84","gn":"12 Boys Grading 1 - Pool 2D","played":2,"games":6}},"p1games":{"D":["2D P1","3E P1"],"G":["4th P1","2A P2"],"A":["2A P1","3B P1"],"J":["4th P1","2D P2"],"K":["4A P2","2A P3"],"H":["4th P1","2B P2"],"M":["4C P2","2C P3"],"N":["4D P2","2D P3"],"O":["4A P3","2A P4"],"U":["3C P3","1C P5"]},"whoAsOf":"2026-11-23 00:45","own":{"g":"76b6cc84","gn":"12 Boys Grading 1 - Pool 2D","ids":{"Hawthorn U12 Boys 2":"3321403f","Ringwood U12 Boys 1":"67bad1b1","Dandenong U12 Boys 2":"a752dd84","Knox U12 Boys 2":"72d2971f"}}};
 const ORD = n => n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : n + 'th';
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -242,15 +307,19 @@ const assumedPlaces = () => new Set(Object.values(S.f || {}));
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 
 // ---- pool ranking (same rules as scripts/pool_outcomes.py) ----
-function rank(res) {
-  const pts = {}; teams.forEach(t => pts[t] = 0);
-  res.forEach(([w, l]) => { pts[w] += 3; pts[l] += 1; });
+// a result is [winner, loser], or [home, away, 'D'] for a draw: 2 points each, as on PlayHQ's ladder
+// (Huan, Nov 2026: draws were counted as away wins). `ts` is for check_pages.py's test of this function
+const addPts = (p, r) => { if (r[2]) { p[r[0]] += 2; p[r[1]] += 2; } else { p[r[0]] += 3; p[r[1]] += 1; } };
+function rank(res, ts) {
+  const tms = ts || teams;
+  const pts = {}; tms.forEach(t => pts[t] = 0);
+  res.forEach(r => addPts(pts, r));
   const mini = group => { const g = new Set(group), mp = {}; group.forEach(t => mp[t] = 0);
-    res.forEach(([w, l]) => { if (g.has(w) && g.has(l)) { mp[w] += 3; mp[l] += 1; } }); return mp; };
+    res.forEach(r => { if (g.has(r[0]) && g.has(r[1])) addPts(mp, r); }); return mp; };
   const desc = arr => [...new Set(arr)].sort((a, b) => b - a);
   const out = {}; let pos = 1;
-  for (const p of desc(teams.map(t => pts[t]))) {
-    const tied = teams.filter(t => pts[t] === p);
+  for (const p of desc(tms.map(t => pts[t]))) {
+    const tied = tms.filter(t => pts[t] === p);
     if (tied.length === 1) out[tied[0]] = [pos, pos];
     else {
       const mp = mini(tied); let sub = pos;
@@ -268,29 +337,31 @@ function rank(res) {
   return out;
 }
 const winLose = (g, homeWins) => homeWins ? [g.home, g.away] : [g.away, g.home];
+const DRAW_MAX = 10;   // games left up to which draws are tried too (same as pool_outcomes.DRAW_MAX)
 function analyse() {
   const fixed = [], open = [];
   games.forEach((g, i) => {
-    if (isPlayed(g)) fixed.push(winLose(g, g.hs > g.as));
-    else if (S.pool[i]) fixed.push(winLose(g, S.pool[i] === 'H'));
+    if (isPlayed(g)) fixed.push(g.hs === g.as ? [g.home, g.away, 'D'] : winLose(g, g.hs > g.as));
+    else if (S.pool[i]) fixed.push(S.pool[i] === 'D' ? [g.home, g.away, 'D'] : winLose(g, S.pool[i] === 'H'));   // a Draw what-if: 2 points each
     else open.push(i);
   });
-  const certain = new Set(), pct = new Set(), byOwn = {}, per = {};
-  open.forEach(i => per[i] = { H: { sum: 0, n: 0, set: new Set(), cnt: {}, pct: 0 }, A: { sum: 0, n: 0, set: new Set(), cnt: {}, pct: 0 } });
-  for (let mask = 0; mask < (1 << open.length); mask++) {
-    const res = fixed.slice(), own = [], picks = {};
-    open.forEach((i, k) => { const g = games[i], h = (mask >> k) & 1; const r = winLose(g, h); res.push(r); picks[i] = h ? 'H' : 'A';
-      if (g.home === me || g.away === me) own.push(r[0] === me ? 'W' : 'L'); });
+  // every result of the games left, draws included (2 points each; Huan, Nov 2026: a draw can open a place
+  // that wins and losses alone can't). Win / lose only when more than 10 games are left (a 13-team ladder),
+  // where three results a game would be too many to try
+  const certain = new Set(), pct = new Set(), byOwn = {}, K = open.length <= DRAW_MAX ? 3 : 2;
+  for (let m = 0; m < K ** open.length; m++) {
+    let x = m; const res = fixed.slice(), own = [];
+    open.forEach(i => { const g = games[i], o = x % K; x = (x - o) / K;
+      const r = o === 2 ? [g.home, g.away, 'D'] : winLose(g, o === 1); res.push(r);
+      if (g.home === me || g.away === me) own.push(o === 2 ? 'D' : r[0] === me ? 'W' : 'L'); });
     const [lo, hi] = rank(res)[me];
     const k = own.join('-');
     byOwn[k] = byOwn[k] || new Set();
     for (let p = lo; p <= hi; p++) { (lo === hi ? certain : pct).add(p); byOwn[k].add(p); }
-    open.forEach(i => { const b = per[i][picks[i]]; b.sum += (lo + hi) / 2; b.n++; for (let p = lo; p <= hi; p++) b.set.add(p);
-      if (lo === hi) b.cnt[lo] = (b.cnt[lo] || 0) + 1; else b.pct++; });
   }
   const possible = new Set([...certain, ...pct]);
   const pctOnly = new Set([...pct].filter(p => !certain.has(p)));
-  return { possible, pctOnly, byOwn, per, open, ownGames: open.filter(i => games[i].home === me || games[i].away === me) };
+  return { possible, pctOnly, byOwn, open, ownGames: open.filter(i => games[i].home === me || games[i].away === me) };
 }
 
 // ---- path tree ----
@@ -323,7 +394,55 @@ function leaguesFor(A, places) {
 }
 const chip = id => `<span class="chip" style="--lgc:${LG[id]?.color || '#ccc'}">${esc(id)}</span>`;
 const chips = lf => `<span class="chips${lf.leagues.length > 1 ? ' ranked' : ''}" title="${esc(lf.how)}">${lf.leagues.map(chip).join('')}</span>`;
-const span = ls => !ls.length ? 'none' : ls.length === 1 ? ls[0] : `${ls[0]} to ${ls[ls.length - 1]}`;
+// grades as chips: one; two "X or Y"; more "X to Y" (the answer's wording)
+const rangeChips = ls => !ls.length ? 'none' : ls.length === 1 ? chip(ls[0])
+  : `<span class="range">${chip(ls[0])}${ls.length === 2 ? 'or' : 'to'}${chip(ls[ls.length - 1])}</span>`;
+let REACH = {};   // per ladder place: the grades still open from it, with the what-ifs (set in render)
+const MORE = new Set();   // crossover lists opened to show the outside chances
+
+// ---- who a placeholder could be (D.who: Phase One place -> teams that can still finish there) ----
+const W = D.who || {};
+const andOr = xs => xs.length < 2 ? xs.join('') : xs.slice(0, -1).join(', ') + ' or ' + xs[xs.length - 1];
+// likely = at least half as likely as the most likely team; the rest are outside chances
+function candSplit(tok) {
+  const c = (W[tok] && W[tok].c) || []; if (!c.length) return null;
+  const top = c[0].s; return { likely: c.filter(x => x.s >= top / 2), rest: c.filter(x => x.s < top / 2), all: c };
+}
+const link = (url, html, what) => url ? `<a class="phq" href="${esc(url)}" target="_blank" rel="noopener" title="${esc(what)} on PlayHQ">${html}</a>` : html;
+// PlayHQ links, built from ids (D.phq holds the prefixes; PlayHQ finds the page by its id)
+const slugify = x => String(x || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const teamUrl = x => D.phq && x.i ? `${D.phq.team}${slugify(x.t)}/${x.i}` : '';
+const poolUrl = w => D.phq && w && w.g ? `${D.phq.grade}${slugify(w.gn)}/${w.g}/ladder` : '';
+const nm = (x, now) => `${link(teamUrl(x), esc(short(x.t)), x.t)}${now ? ` <span class="nw">now ${ORD(x.now)}</span>` : ''}`;
+// a team of the team's own pool, linked to its PlayHQ page when the id is known
+const ownTeam = t => { const i = D.own && D.own.ids && D.own.ids[t]; return link(i ? teamUrl({ t, i }) : '', esc(short(t)), t); };
+// a Phase One place, linked to that pool's ladder on PlayHQ when it is known
+const humL = tok => poolUrl(W[tok]) ? link(poolUrl(W[tok]), hum(tok), hum(tok).replace(/^\S+ of /, '') + ' ladder') : hum(tok);
+// one place: "v Geelong United 3 now 4th or Hawthorn 3 now 3rd (+2 less likely)"; the button shows the rest
+function candLine(tok) {
+  const k = candSplit(tok); if (!k) return '';
+  if (k.all.length === 1) return `<div class="cands"><b>${nm(k.all[0])}</b></div>`;
+  const more = !k.rest.length ? ''
+    : MORE.has(tok) ? `; less likely ${andOr(k.rest.map(x => nm(x)))} <button type="button" class="more" data-more="${esc(tok)}">less</button>`
+    : ` <button type="button" class="more" data-more="${esc(tok)}">+${k.rest.length} less likely</button>`;
+  return `<div class="cands"><b>${andOr(k.likely.map(x => nm(x, true)))}</b>${more}</div>`;
+}
+// a Phase Two column slot: a plain place, or the winner / loser of a Phase One crossover. A crossover
+// slot names the two teams in those places on today's ladders, not every team that could get there
+// (up to eight names was too many to read)
+const today = tok => ((W[tok] && W[tok].c) || []).find(x => x.now === +tok[0]);
+// the team names come first, the placeholder is the small label under them
+function mateItem(tok) {
+  const g = /^([WL])-(\w+)$/.exec(tok), sides = g && (D.p1games || {})[g[2]];
+  if (!sides) {
+    const cl = candLine(tok);
+    return cl ? `<li>${cl}<div class="lbl"><span class="slot">${humL(tok)}</span></div></li>` : `<li><span class="slot">${humL(tok)}</span></li>`;
+  }
+  const [a, b] = sides.map(today);
+  const label = `<span class="slot">${hum(tok)}</span> <span class="nw">(${humL(sides[0])} v ${humL(sides[1])})</span>`;
+  return a || b ? `<li><div class="cands"><b>${a ? nm(a) : '?'}</b> v <b>${b ? nm(b) : '?'}</b></div><div class="lbl">${label}, on today's ladders</div></li>`
+    : `<li>${label}</li>`;
+}
 
 // ---- render ----
 function render() {
@@ -338,16 +457,19 @@ function render() {
   gEl.innerHTML = games.map((g, i) => {
     const when = `<span class="when">${fmtDate(g.date)}</span>`;
     // a team name never breaks across lines ("Sherbrooke / 1"); the line breaks at "v" instead
-    const tn = (t, bold) => `<span class="tn">${bold ? `<b>${esc(short(t))}</b>` : esc(short(t))}</span>`;
-    const name = t => tn(t, t === me);
+    const mine = g.home === me || g.away === me ? ' me' : '';
+    const tn = (t, bold) => `<span class="tn">${bold ? `<b>${ownTeam(t)}</b>` : ownTeam(t)}</span>`;
     if (isPlayed(g)) {
-      const hw = g.hs > g.as;
-      return `<div class="game">${when}<span class="who">${tn(g.home, hw)} v ${tn(g.away, !hw)}</span><span class="score">${g.hs}-${g.as}</span></div>`;
+      // the winner in bold; a draw, neither
+      return `<div class="game${mine}">${when}<span class="who">${tn(g.home, g.hs > g.as)} v ${tn(g.away, g.as > g.hs)}</span><span class="score">${g.hs}-${g.as}</span></div>`;
     }
+    // bold is always the winner: here the what-if pick, and no bold until one is chosen (Huan, Nov 2026: the
+    // team's own name was bold instead, so a what-if for the other side looked wrong)
     const v = S.pool[i];
-    return `<div class="game todo">${when}<span class="who">${name(g.home)} v ${name(g.away)}</span><span class="seg" role="group" aria-label="Who wins (what-if)"><span class="q">Who wins?</span>
-      <button type="button" data-act="pool" data-k="${i}" data-v="H" aria-pressed="${v === 'H'}">${esc(short(g.home))}</button>
-      <button type="button" data-act="pool" data-k="${i}" data-v="A" aria-pressed="${v === 'A'}">${esc(short(g.away))}</button></span></div>`;
+    return `<div class="game todo${mine}">${when}<span class="who">${tn(g.home, v === 'H')} v ${tn(g.away, v === 'A')}</span><span class="seg" role="group" aria-label="Who wins (what-if)"><span class="q">Who wins?</span>
+      <button type="button" data-act="pool" data-k="${i}" data-v="H" aria-pressed="${v === 'H'}" title="${esc(short(g.home))} wins">${esc(short(g.home))}</button>
+      <button type="button" data-act="pool" data-k="${i}" data-v="D" aria-pressed="${v === 'D'}" title="A draw: 2 points each">Draw</button>
+      <button type="button" data-act="pool" data-k="${i}" data-v="A" aria-pressed="${v === 'A'}" title="${esc(short(g.away))} wins">${esc(short(g.away))}</button></span></div>`;
   }).join('');   // each game still to play says "Who wins?" in its own buttons (Huan, Nov 2026)
 
   // finishes
@@ -356,7 +478,10 @@ function render() {
   const label = { open: onlyPlace ? 'certain' : 'possible', pct: 'only on percentage', closed: 'ruled out' };
   document.getElementById('finishes').innerHTML = D.finishes.map(f => {
     const st = finStatus(A, f.place);
-    return `<div class="fin ${st}"><b>${ORD(f.place)}</b><span>${label[st]}</span></div>`;
+    // the likely next opponent under each ladder place (the place itself when no names are known)
+    const k = f.kind === 'game' ? candSplit(f.opp) : null;
+    const opp = f.kind !== 'game' ? '' : `<em class="fopp">Next: v ${k ? andOr(k.all.slice(0, 2).map(x => esc(short(x.t)))) + (k.all.length > 2 ? ` <small>+${k.all.length - 2}</small>` : '') : hum(f.opp)}</em>`;
+    return `<button type="button" class="fin ${st}" data-open="${f.place}" title="Show the paths from ${ORD(f.place)}"><i class="go" aria-hidden="true">↓</i><b>${ORD(f.place)}</b><span>${label[st]}</span>${opp}</button>`;
   }).join('');
 
   // leagues
@@ -388,25 +513,32 @@ function render() {
   // no "Ruled out: ..." / "No pool place is ruled out yet." line: the place boxes above already say it (Huan, Nov 2026)
   const [s0, s1] = (D.seeds || '').split('-').map(Number);
   const bySeed = D.leagues.filter(l => { if (!l.size) return false; const [a, b] = l.seeds.split('-').map(Number); return a <= s1 && b >= s0; }).map(l => l.id);
-  if (bySeed.length) facts.push(`By seeding alone (teams ${esc(D.seeds).replace('-', '–')}), Pool ${esc(D.position.replace(/[A-F]$/, ''))} lines up with ${bySeed.join(' / ')}.`);
+  if (bySeed.length) facts.push(`By seeding alone (teams ${esc(D.seeds).replace('-', '–')}), Pool ${esc(D.position.replace(/[A-F]$/, ''))} lines up with ${rangeChips(bySeed)}.`);
   // no "Biggest game left" line (Huan, Nov 2026): it was nearly always the team's own last game, and the
   // win / lose table below and the what-ifs answer the same question more plainly
   document.getElementById('facts').innerHTML = facts.map(f => `<li><span>${f}</span></li>`).join('');
 
   // own results table
   const ownT = document.getElementById('own');
-  const keys = Object.keys(A.byOwn).filter(k => k);
+  // rows for the team's own wins and losses only (a draw in its own game is rare and would more than double
+  // the rows); the place boxes above count draws too, and the note under the table says so
+  const keys = Object.keys(A.byOwn).filter(k => k && !k.includes('D'));
+  const ownDraws = Object.keys(A.byOwn).some(k => k.includes('D'));
   if (A.ownGames.length && keys.length > 1) {
     const opps = A.ownGames.map(i => 'v ' + esc(short(games[i].home === me ? games[i].away : games[i].home)));
-    keys.sort((a, b) => (a.match(/L/g) || []).length - (b.match(/L/g) || []).length);
+    const enc = k => k.replace(/W/g, '0').replace(/L/g, '1');
+    keys.sort((a, b) => ((a.match(/L/g) || []).length - (b.match(/L/g) || []).length) || (enc(a) < enc(b) ? -1 : 1));
     ownT.innerHTML = `<tr><th>${opps.join(', ')}</th><th>Pool place</th><th>Grades</th></tr>` + keys.map(k => {
       const ps = [...A.byOwn[k]].sort();
       const txt = k.split('-').map(x => x === 'W' ? 'Win' : 'Lose').join(', ');
-      return `<tr><td>${txt}</td><td>${ps.map(ORD).join(', ')}</td><td>${span(leaguesFor(A, new Set(ps)))}</td></tr>`;
-    }).join('');
+      return `<tr><td>${txt}</td><td>${ps.map(ORD).join(', ')}</td><td>${rangeChips(leaguesFor(A, new Set(ps)))}</td></tr>`;
+    }).join('') + (ownDraws ? `<caption>A draw in ${A.ownGames.length > 1 ? 'these games' : 'this game'} is left out of the rows; the places above count it.</caption>` : '');
   } else ownT.innerHTML = '';
 
   // cards
+  // each card's heading range follows the what-ifs inside it, like every other coloured grade on the page
+  REACH = {};
+  walk(A, (f, lf, on) => { if (on) (REACH[f.place] = REACH[f.place] || []).push(...lf.leagues); }, true);
   document.getElementById('cards').innerHTML = D.finishes.map(f => card(A, f)).join('');
 }
 
@@ -422,23 +554,34 @@ function card(A, f) {
   else {
     if (f.kind === 'game') {
       const v = S.p1[f.place];
-      body += `<div class="xover"><span>Phase One crossover <code>${esc(f.game)}</code> v ${hum(f.opp)}</span>
-        <span class="seg"><button type="button" data-act="p1" data-f="${f.place}" data-k="${f.place}" data-v="W" aria-pressed="${v === 'W'}">Win</button><button type="button" data-act="p1" data-f="${f.place}" data-k="${f.place}" data-v="L" aria-pressed="${v === 'L'}">Lose</button></span></div>`;
+      const seg = `<span class="seg"><button type="button" data-act="p1" data-f="${f.place}" data-k="${f.place}" data-v="W" aria-pressed="${v === 'W'}">Win</button><button type="button" data-act="p1" data-f="${f.place}" data-k="${f.place}" data-v="L" aria-pressed="${v === 'L'}">Lose</button></span>`;
+      // with names, the crossover follows the Phase Two pool's pattern: a small heading, the team names,
+      // then the placeholder under them (Huan, Nov 2026: the two read differently)
+      const cl = candLine(f.opp);
+      body += cl ? `<div class="xover named"><div class="xo"><p class="mates">Phase One crossover against</p>${cl}` +
+          `<div class="lbl"><span class="slot">${humL(f.opp)}</span> <span class="nw">(game <code>${esc(f.game)}</code>)</span>, most likely first</div></div>${seg}</div>`
+        : `<div class="xover"><span>Phase One crossover <code>${esc(f.game)}</code> v ${humL(f.opp)}</span>${seg}</div>`;
     }
     for (const b of f.branches) {
       const bOff = !fOff && b.res && S.p1[f.place] && S.p1[f.place] !== b.res;
       const bk = f.place + (b.res || '');
       if (b.leaf) { body += `<div class="branch${bOff ? ' off' : ''}">${chips(b.leaf)}</div>`; continue; }
-      const head = b.res ? `${b.res === 'W' ? 'Win' : 'Lose'} <span class="arrow">→</span> Pool ${esc(b.pool)} · column ${esc(b.col)}` : `Pool ${esc(b.pool)} · column ${esc(b.col)}`;
+      // "Win → Phase Two, Pool EE-A, with:" (Huan, Nov 2026; was "Pool EE · column A" over "Phase Two pool with").
+      // The column stays: each is its own group of four, and the Rnd 1 crossover lines name the others ("4th of DD-B")
+      const where = `Phase Two, Pool ${esc(b.pool)}-${esc(b.col)}, with:`;
+      const head = b.res ? `${b.res === 'W' ? 'Win' : 'Lose'} <span class="arrow">→</span> ${where}` : where;
       const own = b.res ? `${b.res}-${f.game}` : f.tok;
-      const mates = b.mates.filter(x => x !== own).map(hum).join(', ');
-      body += `<div class="branch${bOff ? ' off' : ''}"><h4>${head}</h4><p class="mates">Column with ${mates}</p><ol class="places">`;
+      const others = b.mates.filter(x => x !== own);
+      const mates = D.who ? `<ul class="matelist">${others.map(mateItem).join('')}</ul>`
+        : `<p class="mates">${others.map(hum).join(', ')}</p>`;
+      body += `<div class="branch${bOff ? ' off' : ''}"><h4>${head}</h4>${mates}<ol class="places">`;
       for (const pl of b.places) {
         const sel = S.p2[bk];
         const pOff = !bOff && !fOff && sel && sel !== pl.place;
         body += `<li class="pl${pOff ? ' off' : ''}"><button type="button" class="pbtn" data-act="p2" data-f="${f.place}" data-k="${bk}" data-v="${pl.place}" aria-pressed="${sel === pl.place}" title="Finished ${ORD(pl.place)} in ${esc(b.pool)}-${esc(b.col)}">${ORD(pl.place)}</button><div class="r1">`;
         if (pl.leaf) { body += chips(pl.leaf) + '</div></li>'; continue; }
-        body += `Rnd 1 game <code>${esc(pl.game)}</code> v ${hum(pl.opp)}`;
+        // "Rnd 1 crossover 3", "Rnd 2 crossover VV": the Phase Two crossover rounds (Huan, Nov 2026: was "Rnd 1 game")
+        body += `Rnd 1 crossover <code>${esc(pl.game)}</code> v ${hum(pl.opp)}`;
         const rk = bk + pl.place;
         for (const o of pl.outs) {
           const rsel = S.r1[rk];
@@ -452,7 +595,7 @@ function card(A, f) {
             // choosing one also picks this round 1 result (Huan, Nov 2026: "win" / "lose" were plain words)
             const k2 = rk + o.res, s2 = S.r2[k2], anc = oOff || pOff || bOff || fOff;
             const b2 = (v, lbl) => `<button type="button" class="rbtn" data-act="r2" data-f="${f.place}" data-r1="${o.res}" data-k="${k2}" data-v="${v}" aria-pressed="${s2 === v}">${lbl}</button>`;
-            rest = `<span class="then">→ Rnd 2 <code>${esc(o.game)}</code> v ${hum(o.opp)}:</span> ` +
+            rest = `<span class="then">→ Rnd 2 crossover <code>${esc(o.game)}</code> v ${hum(o.opp)}:</span> ` +
               (same ? `either way ${chips(o.win)}`
                 : `${b2('W', 'Win')} <span class="${!anc && s2 === 'L' ? 'off' : ''}">${chips(o.win)}</span> ` +
                   `${b2('L', 'Lose')} <span class="${!anc && s2 === 'W' ? 'off' : ''}">${chips(o.lose)}</span>`);
@@ -472,7 +615,7 @@ function card(A, f) {
   const prev = document.querySelector(`details.card[data-card="${f.place}"]`);
   const open = prev ? prev.open : (CARDS[f.place] ?? (!NARROW.matches && !fOff));
   return `<details class="card${fOff ? ' off' : ''}" data-card="${f.place}"${open ? ' open' : ''}><summary><span class="big">${ORD(f.place)}</span>
-    <div class="t"><b>in Pool ${esc(D.position)}</b><div>reaches ${span(f.leagues)}</div></div><span class="status ${st}">${stTxt}</span></summary>${body}</details>`;
+    <div class="t"><b>in Pool ${esc(D.position)}</b><div>reaches ${rangeChips(sortL(REACH[f.place] && REACH[f.place].length ? REACH[f.place] : f.leagues))}</div></div><span class="status ${st}">${stTxt}</span></summary>${body}</details>`;
 }
 const NARROW = matchMedia('(max-width: 900px)');
 // the cards the reader opened or closed, by ladder place: recorded from clicks on a card's summary
@@ -487,6 +630,16 @@ document.addEventListener('click', e => {
   try { localStorage.setItem(CARDKEY, JSON.stringify(CARDS)); } catch (err) {}
 }, true);
 
+// a place box opens that place's card (never closes it), remembered like the reader's own click on the
+// card, and scrolls to it
+document.addEventListener('click', e => {
+  const f = e.target.closest('button.fin[data-open]'); if (!f) return;
+  const c = document.querySelector(`details.card[data-card="${f.dataset.open}"]`); if (!c) return;
+  c.open = true; CARDS[f.dataset.open] = true;
+  try { localStorage.setItem(CARDKEY, JSON.stringify(CARDS)); } catch (err) {}
+  c.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  c.querySelector('summary').focus({ preventScroll: true });
+});
 document.addEventListener('click', e => {
   // the What if? strip's links scroll to the pool games or the paths
   const j = e.target.closest('a[data-jump]');
@@ -503,6 +656,10 @@ document.addEventListener('click', e => {
   if (act === 'r2' && S.r2[k] !== undefined) { const k1 = k.slice(0, -1); S.r1[k1] = b.dataset.r1; S.f['r1|' + k1] = +b.dataset.f; }
   save(); render();
 });
+document.addEventListener('click', e => {
+  const m = e.target.closest('button.more'); if (!m) return;
+  MORE.has(m.dataset.more) ? MORE.delete(m.dataset.more) : MORE.add(m.dataset.more); render();
+});
 const resetAll = () => { S = { pool: {}, p1: {}, p2: {}, r1: {}, r2: {}, f: {} }; save(); render(); };
 document.getElementById('reset').addEventListener('click', resetAll);
 document.getElementById('whatif').addEventListener('click', resetAll);
@@ -514,12 +671,16 @@ document.getElementById('title').textContent = `Where can ${D.name} finish in ${
 if (D.seasonDates) document.getElementById('title').title = `${D.season || 'Season'}: ${D.seasonDates}`;
 // no paragraph under the answer (Huan, Nov 2026): the stage goes in the pool heading, the seed band is
 // in "Where it can end up", and the path cards show the steps
-document.getElementById('poolTitle').textContent = `Phase One, Pool ${D.position}`;
+if (D.who) document.getElementById('whoNote').textContent = ` Team names under a crossover or Phase Two pool are the teams that can still take that place, most likely first, from ${D.whoAsOf ? 'results as of ' + fmtDate(D.whoAsOf) : 'the latest results'} (every game left a coin toss).`;
+// the pool heading links to its PlayHQ ladder, and its teams to their PlayHQ pages, like the opponents
+document.getElementById('poolTitle').innerHTML = link(poolUrl(D.own), `Phase One, Pool ${esc(D.position)}`, `Pool ${D.position} ladder`);
 document.getElementById('asof').innerHTML = (D.pool.fetched ? `Results as of ${fmtDate(D.pool.fetched)}` : '') +
-  (D.teamUrl ? ` · <a href="${esc(D.teamUrl)}" target="_blank" rel="noopener">PlayHQ</a>` : '');
+  // no separate "PlayHQ" link when the team's own name in the ladder already links to its page (Huan, Nov 2026)
+  (D.teamUrl && !(D.own && D.own.ids && D.own.ids[me]) ? ` · <a href="${esc(D.teamUrl)}" target="_blank" rel="noopener">PlayHQ</a>` : '');
 const lad = (D.pool.ladder && D.pool.ladder[0] && D.pool.ladder[0].standings) || [];
-document.getElementById('ladder').innerHTML = `<tr><th>#</th><th>Team</th><th class="n">P</th><th class="n">W</th><th class="n">L</th><th class="n">Pts</th><th class="n">%</th></tr>` +
-  lad.map(s => `<tr class="${s.team === me ? 'me' : ''}"><td>${s.pos}</td><td>${esc(short(s.team))}</td><td class="n">${s.P}</td><td class="n">${s.W}</td><td class="n">${s.L}</td><td class="n">${s.PTS}</td><td class="n">${s.pct ?? ''}</td></tr>`).join('');
+// a D column, as on PlayHQ's ladder (a draw: 2 points each) (Huan, Nov 2026)
+document.getElementById('ladder').innerHTML = `<tr><th>#</th><th>Team</th><th class="n">P</th><th class="n">W</th><th class="n">L</th><th class="n">D</th><th class="n">Pts</th><th class="n">%</th></tr>` +
+  lad.map(s => `<tr class="${s.team === me ? 'me' : ''}"><td>${s.pos}</td><td>${ownTeam(s.team)}</td><td class="n">${s.P}</td><td class="n">${s.W}</td><td class="n">${s.L}</td><td class="n">${s.D ?? 0}</td><td class="n">${s.PTS}</td><td class="n">${s.pct ?? ''}</td></tr>`).join('');
 // footer: the map's own caveats, then the source on its own line. The ladder rules (well known, and on
 // PlayHQ) and the dashed-pair note (now in the intro above the cards) are gone (Huan, Nov 2026)
 document.getElementById('foot').innerHTML = [
